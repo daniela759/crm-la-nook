@@ -127,12 +127,17 @@ export default async function ContactePage({
             </thead>
             <tbody className="divide-y divide-nook-line/60">
               {contacts.map((c) => (
-                <tr key={c.id} className="group hover:bg-nook-paper-warm/40 transition-colors">
+                <tr key={c.id} className="group hover:bg-nook-paper-warm/40 transition-colors cursor-pointer">
                   <td className="px-5 py-4">
-                    <div className="font-semibold text-nook-ink">
-                      {c.lastName} {c.firstName}
-                    </div>
-                    <div className="text-xs text-nook-ink-soft">{c.email}</div>
+                    <Link
+                      href={`/contacte/${c.id}`}
+                      className="block hover:text-nook-forest"
+                    >
+                      <div className="font-semibold text-nook-ink group-hover:text-nook-forest transition-colors">
+                        {c.lastName} {c.firstName}
+                      </div>
+                      <div className="text-xs text-nook-ink-soft">{c.email}</div>
+                    </Link>
                   </td>
                   <td className="px-5 py-4">
                     {c.children.length === 0 ? (
@@ -165,12 +170,13 @@ export default async function ContactePage({
                     {formatDate(c.createdAt)}
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <span
-                      className="inline-flex items-center text-nook-ink-soft group-hover:text-nook-forest transition-colors"
-                      aria-hidden
+                    <Link
+                      href={`/contacte/${c.id}`}
+                      aria-label="Vezi detalii"
+                      className="inline-flex items-center text-nook-ink-soft hover:text-nook-forest transition-colors"
                     >
                       <IconArrowRight />
-                    </span>
+                    </Link>
                   </td>
                 </tr>
               ))}

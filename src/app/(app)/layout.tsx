@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
+import { logoutAction } from "@/app/login/actions";
 import {
   IconCalendar,
   IconCash,
@@ -62,15 +63,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </nav>
 
-        <div className="px-6 pb-6 pt-4">
-          <div className="rounded-xl bg-nook-paper p-3 ring-1 ring-nook-line">
-            <div className="text-[10px] font-bold tracking-widest text-nook-terracotta">
-              ÎN CONSTRUCȚIE
-            </div>
-            <div className="mt-1 text-xs text-nook-ink-soft">
-              Etapa 2 din 6 · Bază de date și contacte
-            </div>
-          </div>
+        <div className="px-3 pb-6 pt-4">
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="w-full rounded-xl px-3 py-2 text-left text-xs text-nook-ink-soft transition-colors hover:bg-nook-paper-warm hover:text-nook-ink"
+            >
+              <span className="inline-flex items-center gap-2">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                </svg>
+                Ieși din cont
+              </span>
+            </button>
+          </form>
         </div>
       </aside>
 

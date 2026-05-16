@@ -147,7 +147,10 @@ function SubscriptionCard({
   const tone = done ? "bg-nook-line" : almostDone ? "bg-state-yellow" : "bg-nook-sage";
 
   return (
-    <div className="rounded-2xl bg-nook-paper ring-1 ring-nook-line p-5">
+    <Link
+      href={`/abonamente/${sub.id}`}
+      className="rounded-2xl bg-nook-paper ring-1 ring-nook-line p-5 block transition-colors hover:ring-nook-forest/60"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="font-semibold text-nook-ink">
@@ -188,6 +191,6 @@ function SubscriptionCard({
         )}
         {done && <span className="font-semibold">Consumat</span>}
       </div>
-    </div>
+    </Link>
   );
 }

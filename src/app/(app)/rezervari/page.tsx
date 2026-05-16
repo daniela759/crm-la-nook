@@ -124,15 +124,19 @@ export default async function RezervariPage({
               {leads.map((l) => (
                 <tr key={l.id} className="hover:bg-nook-paper-warm/30 transition-colors">
                   <td className="px-5 py-4 text-xs">
-                    <div className="font-semibold text-nook-ink">
-                      {formatDateTime(l.scheduledAt)}
-                    </div>
+                    <Link href={`/rezervari/${l.id}`} className="block hover:text-nook-forest">
+                      <div className="font-semibold text-nook-ink hover:text-nook-forest">
+                        {formatDateTime(l.scheduledAt)}
+                      </div>
+                    </Link>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="font-semibold text-nook-ink">
-                      {l.contact.lastName} {l.contact.firstName}
-                    </div>
-                    <div className="text-xs text-nook-ink-soft">{l.contact.phone}</div>
+                    <Link href={`/contacte/${l.contactId}`} className="block hover:text-nook-forest">
+                      <div className="font-semibold text-nook-ink hover:text-nook-forest">
+                        {l.contact.lastName} {l.contact.firstName}
+                      </div>
+                      <div className="text-xs text-nook-ink-soft">{l.contact.phone}</div>
+                    </Link>
                   </td>
                   <td className="px-5 py-4">
                     <TypeBadge type={l.type} />

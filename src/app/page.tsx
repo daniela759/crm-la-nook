@@ -78,36 +78,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Palette preview — discret, pentru verificare brand */}
-      <section className="px-6 py-12">
-        <div className="mx-auto max-w-5xl">
-          <h3 className="font-display text-sm font-bold tracking-widest text-nook-ink-soft uppercase">
-            Paletă cromatică
-          </h3>
-          <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-3">
-            {[
-              { name: "forest", hex: "#708c77" },
-              { name: "sage", hex: "#7baa86" },
-              { name: "sage-light", hex: "#bfd6ba" },
-              { name: "terracotta", hex: "#af7e54" },
-              { name: "sand", hex: "#ddcf97" },
-              { name: "cream", hex: "#ffe4c7" },
-            ].map(({ name, hex }) => (
-              <div
-                key={name}
-                className="rounded-xl overflow-hidden ring-1 ring-nook-line/60"
-              >
-                <div className="h-16" style={{ backgroundColor: hex }} />
-                <div className="bg-nook-paper px-3 py-2">
-                  <div className="text-xs font-medium text-nook-ink">{name}</div>
-                  <div className="text-[10px] text-nook-ink-soft">{hex}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="mt-auto border-t border-nook-line px-6 py-6 text-center text-xs text-nook-ink-soft">
         Construit de{" "}
