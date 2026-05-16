@@ -2,6 +2,9 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageContainer, PageHeader } from "@/components/PageHeader";
 import { IconPlus, IconArrowRight } from "@/components/icons";
+import { getSettings } from "@/lib/settings";
+import { computeScore, computeStage, scoreTone, SCORE_TONE_LABEL } from "@/lib/scoring";
+import { PIPELINE_STAGE_LABEL, type PipelineStage } from "@/lib/domain";
 
 function ageFromBirthDate(birth: Date): number {
   const today = new Date(2026, 4, 16); // referință luna demo
@@ -40,17 +43,35 @@ export default async function ContactePage({
       }
     : undefined;
 
-  const contacts = await db.contact.findMany({
-    where,
-    include: {
-      children: { orderBy: { birthDate: "asc" } },
-      initialSource: true,
-      _count: { select: { leads: true, subscriptions: true } },
-    },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-  });
+  const [contactsRaw, totalAll, settings] = await Promise.all([
+    db.contact.findMany({
+      where,
+      include: {
+        children: { orderBy: { birthDate: "asc" } },
+        initialSource: true,
+        leads: { select: { type: true, status: true, scheduledAt: true, createdAt: true } },
+        subscriptions: { select: { totalEntries: true, usedEntries: true, purchasedAt: true } },
+        _count: { select: { leads: true, subscriptions: true } },
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    db.contact.count(),
+    getSettings(),
+  ]);
 
-  const totalAll = await db.contact.count();
+  const referenceDate = new Date(2026, 4, 16); // consistent cu seed
+  const contacts = contactsRaw.map((c) => {
+    const score = computeScore(
+      { leads: c.leads, subscriptions: c.subscriptions, referenceDate },
+      settings.scoreRules,
+    );
+    const stage = computeStage(
+      { leads: c.leads, subscriptions: c.subscriptions, referenceDate },
+      score,
+      settings.scoreRules,
+    );
+    return { ...c, score, stage };
+  });
 
   return (
     <PageContainer>
@@ -97,9 +118,9 @@ export default async function ContactePage({
               <tr>
                 <th className="px-5 py-3">Părinte</th>
                 <th className="px-5 py-3">Copii</th>
-                <th className="px-5 py-3 hidden md:table-cell">Telefon</th>
+                <th className="px-5 py-3 hidden md:table-cell">Stadiu</th>
                 <th className="px-5 py-3 hidden lg:table-cell">Sursă</th>
-                <th className="px-5 py-3 hidden lg:table-cell text-center">Rezervări</th>
+                <th className="px-5 py-3 hidden lg:table-cell text-center">Scor</th>
                 <th className="px-5 py-3 hidden xl:table-cell">Înregistrat</th>
                 <th className="px-5 py-3 w-10"></th>
               </tr>
@@ -131,16 +152,14 @@ export default async function ContactePage({
                       </div>
                     )}
                   </td>
-                  <td className="px-5 py-4 hidden md:table-cell text-sm text-nook-ink-soft">
-                    {c.phone}
+                  <td className="px-5 py-4 hidden md:table-cell">
+                    <StageBadge stage={c.stage} />
                   </td>
                   <td className="px-5 py-4 hidden lg:table-cell text-sm text-nook-ink-soft">
                     {c.initialSource?.name ?? "—"}
                   </td>
-                  <td className="px-5 py-4 hidden lg:table-cell text-center text-sm">
-                    <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-nook-paper-warm px-1.5 text-xs font-semibold text-nook-ink">
-                      {c._count.leads}
-                    </span>
+                  <td className="px-5 py-4 hidden lg:table-cell text-center">
+                    <ScoreBadge score={c.score} />
                   </td>
                   <td className="px-5 py-4 hidden xl:table-cell text-xs text-nook-ink-soft">
                     {formatDate(c.createdAt)}
@@ -160,6 +179,46 @@ export default async function ContactePage({
         </div>
       )}
     </PageContainer>
+  );
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const tone = scoreTone(score);
+  const map = {
+    cold: "bg-nook-line text-nook-ink-soft",
+    warm: "bg-nook-sand/50 text-nook-ink",
+    ready: "bg-nook-forest text-nook-paper",
+    ambassador: "bg-nook-terracotta text-nook-paper",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${map[tone]}`}
+      title={SCORE_TONE_LABEL[tone]}
+    >
+      {score}
+    </span>
+  );
+}
+
+const STAGE_TONE: Record<PipelineStage, string> = {
+  LEAD_NEW: "bg-nook-sand/40 text-nook-ink",
+  CONFIRMED_RESERVATION: "bg-nook-sage/30 text-nook-forest",
+  FIRST_VISIT: "bg-nook-sage-light/60 text-nook-forest",
+  RECURRING_VISITOR: "bg-nook-sage/50 text-nook-paper",
+  READY_FOR_SUBSCRIPTION: "bg-nook-terracotta/20 text-nook-terracotta",
+  SUBSCRIBED: "bg-nook-forest text-nook-paper",
+  LOYAL_SUBSCRIBER: "bg-nook-terracotta text-nook-paper",
+  NO_SHOW: "bg-state-red/15 text-state-red",
+  INACTIVE: "bg-nook-line text-nook-ink-soft",
+};
+
+function StageBadge({ stage }: { stage: PipelineStage }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${STAGE_TONE[stage]}`}
+    >
+      {PIPELINE_STAGE_LABEL[stage]}
+    </span>
   );
 }
 
