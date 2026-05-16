@@ -1,0 +1,215 @@
+// Schema pentru Nook CRM
+// SQLite local pentru dezvoltare. Pentru deploy, se schimbă provider pe "postgresql".
+// Pentru câmpurile de tip enum, folosim String + constante TypeScript în src/lib/domain.ts
+// (SQLite nu suportă native enums; validarea se face în Server Actions cu Zod.)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Persoana adultă — părintele sau aparținătorul. Sursa de adevăr pentru identitate.
+model Contact {
+  id              String   @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String   @unique
+  phone           String   @unique
+  address         String?
+  notes           String?
+  initialSourceId String?
+  initialSource   LeadSource? @relation(fields: [initialSourceId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  children      Child[]
+  leads         Lead[]
+  subscriptions Subscription[]
+  transactions  Transaction[]
+  tasks         Task[]
+
+  @@index([lastName, firstName])
+}
+
+/// Copilul aparține unui Contact. Stocat o singură dată (vezi nota 2.12 din spec).
+model Child {
+  id        String   @id @default(cuid())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  name      String
+  birthDate DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+
+  interests ChildInterest[]
+  leads     LeadChild[]
+}
+
+/// Listă configurabilă de etichete de interes (Cărți, Mișcare, etc.).
+model Interest {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  active Boolean @default(true)
+
+  children ChildInterest[]
+}
+
+/// Tabel-pivot N-N: Child ↔ Interest.
+model ChildInterest {
+  childId    String
+  interestId String
+  child      Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([childId, interestId])
+}
+
+/// Rezervare = Lead. Intenție, NU confirmare. Inima CRM-ului.
+/// `type`: VISIT | BIRTHDAY | EVENT | SUBSCRIPTION_INTEREST  (vezi domain.ts)
+/// `status`: NEW | CONTACTED | CONFIRMED | PRESENT | ABSENT | CANCELLED
+model Lead {
+  id             String   @id @default(cuid())
+  contactId      String
+  contact        Contact  @relation(fields: [contactId], references: [id])
+  type           String
+  sourceId       String
+  source         LeadSource @relation(fields: [sourceId], references: [id])
+  createdAt      DateTime @default(now())
+  scheduledAt    DateTime
+  adultsCount    Int      @default(0)
+  status         String   @default("NEW")
+  eventId        String?
+  event          Event?   @relation(fields: [eventId], references: [id])
+  estimatedValue Float    @default(0)
+  notes          String?
+
+  children     LeadChild[]
+  transactions Transaction[]
+  tasks        Task[]
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+/// Tabel-pivot N-N: Lead ↔ Child.
+model LeadChild {
+  leadId  String
+  childId String
+  lead    Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  child   Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, childId])
+}
+
+/// De unde vine lead-ul (Google, Facebook, Recomandare, etc.).
+model LeadSource {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  active Boolean @default(true)
+
+  leads    Lead[]
+  contacts Contact[]
+}
+
+/// Abonamentul — produsul-obiectiv. 8 intrări (350 lei) sau 4 intrări (250 lei).
+/// `type`: ENTRIES_8 | ENTRIES_4
+model Subscription {
+  id           String   @id @default(cuid())
+  contactId    String
+  contact      Contact  @relation(fields: [contactId], references: [id])
+  type         String
+  purchasedAt  DateTime @default(now())
+  totalEntries Int
+  usedEntries  Int      @default(0)
+  pricePaid    Float
+
+  transactions Transaction[]
+}
+
+/// Fiecare mișcare de bani.
+/// `revenueType`: CHILD_VISIT | PARENT_VISIT | BIRTHDAY | EVENT | SUBSCRIPTION
+/// `status`: POTENTIAL | CONFIRMED | COLLECTED
+/// `paymentMethod`: CASH | CARD | TRANSFER
+model Transaction {
+  id             String  @id @default(cuid())
+  contactId      String
+  contact        Contact @relation(fields: [contactId], references: [id])
+  leadId         String?
+  lead           Lead?   @relation(fields: [leadId], references: [id])
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  revenueType    String
+  amount         Float
+  status         String  @default("POTENTIAL")
+  date           DateTime @default(now())
+  paymentMethod  String  @default("CASH")
+
+  @@index([date])
+  @@index([status])
+}
+
+/// Sarcina administratorului (manuală sau auto-generată).
+/// `type`: LEAD_FOLLOWUP | CALL_CONTACT | CONFIRM_RESERVATION | OFFER_SUBSCRIPTION | EVENT_PREP | RENEW_SUBSCRIPTION | RECOVER_NO_SHOW | OTHER
+/// `priority`: HIGH | MEDIUM | LOW
+/// `status`: TODO | IN_PROGRESS | DONE
+/// `origin`: MANUAL | AUTO
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  type      String
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id])
+  dueDate   DateTime
+  priority  String   @default("MEDIUM")
+  status    String   @default("TODO")
+  origin    String   @default("MANUAL")
+  createdAt DateTime @default(now())
+
+  @@index([status, dueDate])
+}
+
+/// Eveniment organizat la Nook (atelier, întâlnire tematică).
+/// `status`: PLANNED | IN_PROGRESS | FINISHED | CANCELLED
+model Event {
+  id       String   @id @default(cuid())
+  name     String
+  datetime DateTime
+  capacity Int
+  fee      Float    @default(100)
+  status   String   @default("PLANNED")
+
+  leads         Lead[]
+  scheduleSlots ScheduleSlot[]
+}
+
+/// Unitatea de timp din Calendar. Sloturile standard sunt generate din program.
+/// `slotType`: STANDARD | BIRTHDAY | EVENT | BLOCKED
+model ScheduleSlot {
+  id            String   @id @default(cuid())
+  date          DateTime
+  startTime     String   // "HH:mm"
+  endTime       String   // "HH:mm"
+  slotType      String
+  capacityTotal Int
+  eventId       String?
+  event         Event?   @relation(fields: [eventId], references: [id])
+  leadId        String?
+
+  @@index([date])
+}
+
+/// Singleton — un singur rând cu toată configurarea afacerii (JSON-uri).
+model Settings {
+  id         Int      @id @default(1)
+  prices     String   // JSON: { childVisit, parentVisit, birthday, eventFee, sub8, sub4 }
+  schedule   String   // JSON: { weekday: [...], weekend: [...], birthdayHours, slotCapacity }
+  targets    String   // JSON: { survival, breakEven, profit }
+  scoreRules String   // JSON: { booking, confirmed, visit, ... , threshold }
+  updatedAt  DateTime @updatedAt
+}
