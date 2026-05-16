@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paleta Nook — inspirată din natură */
+  --color-forest: #708c77;       /* Primary  · verde profund */
+  --color-sage: #7baa86;         /* Secondary · verde oliv */
+  --color-sage-light: #bfd6ba;   /* Secondary · verde deschis */
+  --color-terracotta: #af7e54;   /* Primary  · maro teracotă */
+  --color-sand: #ddcf97;         /* Secondary · bej galben */
+  --color-cream: #ffe4c7;        /* Secondary · crem cald */
+
+  /* Neutre — hârtie naturală */
+  --color-paper: #fdfbf6;        /* fundal pagini */
+  --color-paper-warm: #f6f1e8;   /* fundal carduri / hover */
+  --color-ink: #2a3a30;          /* text principal — verde foarte închis */
+  --color-ink-soft: #5a6960;     /* text secundar */
+  --color-line: #e6dfd3;         /* linii separatoare */
+
+  /* Semafor financiar (din spec, secțiunea 7) */
+  --color-state-red: #c0584f;
+  --color-state-yellow: #d9a441;
+  --color-state-green: #6f9a6e;
+  --color-state-green-bright: #4f8a5a;
+
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-nook-forest: var(--color-forest);
+  --color-nook-sage: var(--color-sage);
+  --color-nook-sage-light: var(--color-sage-light);
+  --color-nook-terracotta: var(--color-terracotta);
+  --color-nook-sand: var(--color-sand);
+  --color-nook-cream: var(--color-cream);
+
+  --color-nook-paper: var(--color-paper);
+  --color-nook-paper-warm: var(--color-paper-warm);
+  --color-nook-ink: var(--color-ink);
+  --color-nook-ink-soft: var(--color-ink-soft);
+  --color-nook-line: var(--color-line);
+
+  --color-state-red: var(--color-state-red);
+  --color-state-yellow: var(--color-state-yellow);
+  --color-state-green: var(--color-state-green);
+  --color-state-green-bright: var(--color-state-green-bright);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-nunito);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Titlurile folosesc fontul „display" (substitut pentru Happy Night) */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  letter-spacing: -0.01em;
 }
