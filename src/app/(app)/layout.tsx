@@ -9,6 +9,7 @@ import {
   IconFinance,
   IconReservations,
   IconSettings,
+  IconSubscription,
   IconTasks,
 } from "@/components/icons";
 
@@ -51,6 +52,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarGroup title="Date">
             <NavLink href="/contacte" icon={<IconContacts />}>
               Contacte
+            </NavLink>
+            <NavLink href="/abonamente" icon={<IconSubscription />}>
+              Abonamente
             </NavLink>
             <NavLink href="/setari" icon={<IconSettings />}>
               Setări

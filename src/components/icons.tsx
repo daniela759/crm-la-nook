@@ -77,6 +77,14 @@ export const IconContacts = () => (
   </svg>
 );
 
+export const IconSubscription = () => (
+  <svg {...props} aria-hidden>
+    <rect x="3" y="6" width="18" height="13" rx="2" />
+    <path d="M3 11h18M7 15h3M14 15h3" />
+    <path d="M8 3v4M16 3v4" />
+  </svg>
+);
+
 export const IconPlus = () => (
   <svg {...props} aria-hidden>
     <path d="M12 5v14M5 12h14" />
