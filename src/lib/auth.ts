@@ -1,10 +1,9 @@
 /**
- * Auth pentru CRM Nook — multi-user, stocați în tabela User.
+ * Auth pentru CRM Nook — partea care rulează ÎN EDGE (proxy.ts).
+ * Doar Web Crypto API; nu importă bcrypt sau Prisma.
  *
- * Cookie de sesiune: `<userId>.<timestamp>.<hmacSha256>` cu expirare 30 zile.
- * - createSessionToken / verifySessionToken: rulează în Edge (Web Crypto).
- * - hashPassword / verifyPassword: bcryptjs, rulează doar în Node (Server Actions).
- * - getCurrentUser: citește cookie + face lookup în DB; pentru Server Components.
+ * Pentru hash parole + lookup user în DB, vezi src/lib/auth-server.ts
+ * (rulează doar în Node — Server Actions și Server Components).
  */
 
 const SESSION_COOKIE = "nook_session";
@@ -15,7 +14,7 @@ const encoder = new TextEncoder();
 
 function getSecret(): string {
   const s = process.env.SESSION_SECRET;
-  if (!s) throw new Error("SESSION_SECRET nu este setat în .env");
+  if (!s) throw new Error("SESSION_SECRET nu este setat");
   return s;
 }
 
@@ -33,7 +32,7 @@ async function hmacHex(message: string, secret: string): Promise<string> {
     .join("");
 }
 
-/** Creează un token de sesiune semnat pentru un user. */
+/** Cookie format: `userId.timestamp.hmac` */
 export async function createSessionToken(userId: string): Promise<string> {
   const ts = Date.now().toString();
   const payload = `${userId}.${ts}`;
@@ -41,7 +40,7 @@ export async function createSessionToken(userId: string): Promise<string> {
   return `${payload}.${sig}`;
 }
 
-/** Verifică un token de sesiune. Întoarce userId sau null. */
+/** Verifică un token. Întoarce userId sau null. */
 export async function verifySessionToken(
   token: string | undefined | null,
 ): Promise<string | null> {
@@ -62,38 +61,5 @@ export async function verifySessionToken(
 
 export const SESSION_CONFIG = {
   name: SESSION_COOKIE,
-  maxAge: MAX_AGE_DAYS * 24 * 60 * 60, // în secunde
+  maxAge: MAX_AGE_DAYS * 24 * 60 * 60,
 };
-
-// ─── Funcții care folosesc bcryptjs și DB — DOAR în Node (Server Actions / RSC) ─
-
-/**
- * Hash parolă cu bcrypt (cost 10).
- * Import lazy pentru a evita includerea în Edge bundle.
- */
-export async function hashPassword(plain: string): Promise<string> {
-  const bcrypt = (await import("bcryptjs")).default;
-  return bcrypt.hash(plain, 10);
-}
-
-export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
-  const bcrypt = (await import("bcryptjs")).default;
-  return bcrypt.compare(plain, hash);
-}
-
-/** Returnează user-ul curent (din cookie + DB) sau null. */
-export async function getCurrentUser() {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  const userId = await verifySessionToken(token);
-  if (!userId) return null;
-
-  const { db } = await import("@/lib/db");
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true, active: true },
-  });
-  if (!user || !user.active) return null;
-  return user;
-}

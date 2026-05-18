@@ -4,11 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import {
-  SESSION_CONFIG,
-  createSessionToken,
-  verifyPassword,
-} from "@/lib/auth";
+import { SESSION_CONFIG, createSessionToken } from "@/lib/auth";
+import { verifyPassword } from "@/lib/auth-server";
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email("Email invalid"),

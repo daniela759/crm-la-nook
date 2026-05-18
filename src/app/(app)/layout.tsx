@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { logoutAction } from "@/app/login/actions";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth-server";
 import {
   IconCalendar,
   IconCash,
