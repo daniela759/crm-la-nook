@@ -30,16 +30,6 @@ export default async function LoginPage({
           <LoginForm from={from ?? "/dashboard"} />
         </div>
 
-        <div className="mt-6 rounded-xl bg-nook-cream/40 px-4 py-3 text-center ring-1 ring-nook-terracotta/30">
-          <div className="text-[11px] font-bold tracking-widest uppercase text-nook-terracotta">
-            Cont demo
-          </div>
-          <div className="mt-1 text-xs text-nook-ink">
-            Utilizator: <code className="font-semibold">admin</code> · Parolă:{" "}
-            <code className="font-semibold">nook-demo-2026</code>
-          </div>
-        </div>
-
         <div className="mt-6 text-center text-xs text-nook-ink-soft">
           <Link href="/" className="hover:text-nook-ink">
             ← Înapoi la pagina principală

@@ -3,14 +3,15 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { db } from "@/lib/db";
 import {
   SESSION_CONFIG,
-  checkCredentials,
   createSessionToken,
+  verifyPassword,
 } from "@/lib/auth";
 
 const schema = z.object({
-  username: z.string().trim().min(1, "Utilizator necesar"),
+  email: z.string().trim().toLowerCase().email("Email invalid"),
   password: z.string().min(1, "Parolă necesară"),
   from: z.string().optional(),
 });
@@ -25,7 +26,7 @@ export async function loginAction(
   formData: FormData,
 ): Promise<LoginState> {
   const parsed = schema.safeParse({
-    username: formData.get("username"),
+    email: formData.get("email"),
     password: formData.get("password"),
     from: formData.get("from"),
   });
@@ -33,13 +34,25 @@ export async function loginAction(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Date invalide" };
   }
-  const { username, password, from } = parsed.data;
+  const { email, password, from } = parsed.data;
 
-  if (!checkCredentials(username, password)) {
-    return { error: "Utilizator sau parolă greșite" };
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user || !user.active) {
+    return { error: "Email sau parolă greșite" };
   }
 
-  const token = await createSessionToken();
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    return { error: "Email sau parolă greșite" };
+  }
+
+  // Update lastLoginAt
+  await db.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  const token = await createSessionToken(user.id);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_CONFIG.name, token, {
     httpOnly: true,
@@ -50,9 +63,8 @@ export async function loginAction(
   });
 
   // Verificăm că destinația e relativă (anti open-redirect)
-  const target = from && from.startsWith("/") && !from.startsWith("//")
-    ? from
-    : "/dashboard";
+  const target =
+    from && from.startsWith("/") && !from.startsWith("//") ? from : "/dashboard";
 
   redirect(target);
 }

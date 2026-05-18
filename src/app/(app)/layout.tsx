@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { logoutAction } from "@/app/login/actions";
+import { getCurrentUser } from "@/lib/auth";
 import {
   IconCalendar,
   IconCash,
@@ -14,7 +15,8 @@ import {
   IconTasks,
 } from "@/components/icons";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
   return (
     <div className="flex flex-1 min-h-screen">
       {/* Sidebar */}
@@ -63,7 +65,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </nav>
 
-        <div className="px-3 pb-6 pt-4">
+        <div className="border-t border-nook-line/60 px-3 pb-6 pt-4">
+          {user && (
+            <div className="px-3 pb-2">
+              <div className="text-[10px] font-bold tracking-widest uppercase text-nook-ink-soft/70">
+                Conectat ca
+              </div>
+              <div className="mt-0.5 truncate text-xs font-semibold text-nook-ink">
+                {user.name || user.email}
+              </div>
+              {user.name && (
+                <div className="truncate text-[11px] text-nook-ink-soft">
+                  {user.email}
+                </div>
+              )}
+            </div>
+          )}
           <form action={logoutAction}>
             <button
               type="submit"

@@ -1,8 +1,10 @@
 /**
- * Auth minimal pentru single-admin CRM.
- * - Parolă în .env (`ADMIN_USERNAME` + `ADMIN_PASSWORD`)
- * - Cookie de sesiune semnat cu HMAC-SHA256 + timestamp (expirare 30 zile)
- * - Funcționează în Edge runtime (Web Crypto API), deci compatibil cu middleware
+ * Auth pentru CRM Nook — multi-user, stocați în tabela User.
+ *
+ * Cookie de sesiune: `<userId>.<timestamp>.<hmacSha256>` cu expirare 30 zile.
+ * - createSessionToken / verifySessionToken: rulează în Edge (Web Crypto).
+ * - hashPassword / verifyPassword: bcryptjs, rulează doar în Node (Server Actions).
+ * - getCurrentUser: citește cookie + face lookup în DB; pentru Server Components.
  */
 
 const SESSION_COOKIE = "nook_session";
@@ -31,46 +33,67 @@ async function hmacHex(message: string, secret: string): Promise<string> {
     .join("");
 }
 
-/** Creează un token de sesiune semnat. */
-export async function createSessionToken(): Promise<string> {
+/** Creează un token de sesiune semnat pentru un user. */
+export async function createSessionToken(userId: string): Promise<string> {
   const ts = Date.now().toString();
-  const sig = await hmacHex(ts, getSecret());
-  return `${ts}.${sig}`;
+  const payload = `${userId}.${ts}`;
+  const sig = await hmacHex(payload, getSecret());
+  return `${payload}.${sig}`;
 }
 
-/** Verifică un token de sesiune. Returnează true dacă e valid și neexpirat. */
-export async function verifySessionToken(token: string | undefined | null): Promise<boolean> {
-  if (!token) return false;
-  const idx = token.indexOf(".");
-  if (idx < 1) return false;
-  const ts = token.slice(0, idx);
-  const sig = token.slice(idx + 1);
+/** Verifică un token de sesiune. Întoarce userId sau null. */
+export async function verifySessionToken(
+  token: string | undefined | null,
+): Promise<string | null> {
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [userId, ts, sig] = parts;
+  if (!userId || !ts || !sig) return null;
 
-  const expected = await hmacHex(ts, getSecret());
-  if (sig !== expected) return false;
+  const expected = await hmacHex(`${userId}.${ts}`, getSecret());
+  if (sig !== expected) return null;
 
   const age = Date.now() - Number(ts);
-  if (Number.isNaN(age) || age < 0 || age > MAX_AGE_MS) return false;
+  if (Number.isNaN(age) || age < 0 || age > MAX_AGE_MS) return null;
 
-  return true;
-}
-
-/** Verifică credențialele față de cele din .env. */
-export function checkCredentials(username: string, password: string): boolean {
-  const u = process.env.ADMIN_USERNAME ?? "admin";
-  const p = process.env.ADMIN_PASSWORD ?? "";
-  if (!p) return false;
-  // Comparație constant-time pentru parolă
-  if (username !== u) return false;
-  if (password.length !== p.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < password.length; i++) {
-    mismatch |= password.charCodeAt(i) ^ p.charCodeAt(i);
-  }
-  return mismatch === 0;
+  return userId;
 }
 
 export const SESSION_CONFIG = {
   name: SESSION_COOKIE,
   maxAge: MAX_AGE_DAYS * 24 * 60 * 60, // în secunde
 };
+
+// ─── Funcții care folosesc bcryptjs și DB — DOAR în Node (Server Actions / RSC) ─
+
+/**
+ * Hash parolă cu bcrypt (cost 10).
+ * Import lazy pentru a evita includerea în Edge bundle.
+ */
+export async function hashPassword(plain: string): Promise<string> {
+  const bcrypt = (await import("bcryptjs")).default;
+  return bcrypt.hash(plain, 10);
+}
+
+export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
+  const bcrypt = (await import("bcryptjs")).default;
+  return bcrypt.compare(plain, hash);
+}
+
+/** Returnează user-ul curent (din cookie + DB) sau null. */
+export async function getCurrentUser() {
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const userId = await verifySessionToken(token);
+  if (!userId) return null;
+
+  const { db } = await import("@/lib/db");
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, active: true },
+  });
+  if (!user || !user.active) return null;
+  return user;
+}

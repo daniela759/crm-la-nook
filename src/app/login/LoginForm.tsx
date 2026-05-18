@@ -13,13 +13,14 @@ export function LoginForm({ from }: { from: string }) {
       <input type="hidden" name="from" value={from} />
 
       <label className="block">
-        <span className="text-xs font-medium text-nook-ink-soft">Utilizator</span>
+        <span className="text-xs font-medium text-nook-ink-soft">Email</span>
         <input
-          name="username"
-          type="text"
-          autoComplete="username"
-          defaultValue="admin"
+          name="email"
+          type="email"
+          autoComplete="email"
           required
+          autoFocus
+          placeholder="numele@email.com"
           className="mt-1 w-full rounded-xl border border-nook-line bg-nook-paper px-4 py-2.5 text-sm focus:border-nook-forest focus:outline-none focus:ring-2 focus:ring-nook-forest/20"
         />
       </label>
@@ -31,7 +32,6 @@ export function LoginForm({ from }: { from: string }) {
           type="password"
           autoComplete="current-password"
           required
-          autoFocus
           className="mt-1 w-full rounded-xl border border-nook-line bg-nook-paper px-4 py-2.5 text-sm focus:border-nook-forest focus:outline-none focus:ring-2 focus:ring-nook-forest/20"
         />
       </label>
