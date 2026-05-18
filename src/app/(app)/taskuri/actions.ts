@@ -92,9 +92,8 @@ export async function addManualTask(
   return { ok: true };
 }
 
-export async function runAutomationsAction() {
-  const result = await runAutomations(new Date());
+export async function runAutomationsAction(): Promise<void> {
+  await runAutomations(new Date());
   revalidatePath("/taskuri");
   revalidatePath("/dashboard");
-  return result;
 }
