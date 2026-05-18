@@ -13,6 +13,7 @@ import {
   IconSettings,
   IconSubscription,
   IconTasks,
+  IconUsers,
 } from "@/components/icons";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -63,13 +64,32 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Setări
             </NavLink>
           </SidebarGroup>
+
+          {user?.role === "ADMIN" && (
+            <SidebarGroup title="Admin">
+              <NavLink href="/utilizatori" icon={<IconUsers />}>
+                Utilizatori
+              </NavLink>
+            </SidebarGroup>
+          )}
         </nav>
 
         <div className="border-t border-nook-line/60 px-3 pb-6 pt-4">
           {user && (
             <div className="px-3 pb-2">
-              <div className="text-[10px] font-bold tracking-widest uppercase text-nook-ink-soft/70">
-                Conectat ca
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-bold tracking-widest uppercase text-nook-ink-soft/70">
+                  Conectat ca
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                    user.role === "ADMIN"
+                      ? "bg-nook-terracotta/15 text-nook-terracotta"
+                      : "bg-nook-sage-light/40 text-nook-forest"
+                  }`}
+                >
+                  {user.role === "ADMIN" ? "Admin" : "User"}
+                </span>
               </div>
               <div className="mt-0.5 truncate text-xs font-semibold text-nook-ink">
                 {user.name || user.email}

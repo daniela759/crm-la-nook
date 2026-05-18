@@ -214,12 +214,14 @@ model Settings {
   updatedAt  DateTime @updatedAt
 }
 
-/// Utilizatorii care pot intra în CRM. Toți au aceleași permisiuni.
+/// Utilizatorii care pot intra în CRM.
+/// `role`: USER (operator standard) sau ADMIN (poate gestiona alți utilizatori)
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
   name         String?
+  role         String   @default("USER")
   active       Boolean  @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())

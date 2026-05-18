@@ -27,8 +27,21 @@ export async function getCurrentUser() {
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, active: true },
+    select: { id: true, email: true, name: true, active: true, role: true },
   });
   if (!user || !user.active) return null;
   return user;
+}
+
+/** Throws dacă userul curent nu e admin. De folosit în pagini/Server Actions admin-only. */
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    throw new Error("Doar administratorii pot accesa această pagină.");
+  }
+  return user;
+}
+
+export function isAdmin(user: { role?: string | null } | null): boolean {
+  return user?.role === "ADMIN";
 }
