@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 /// Persoana adultă — părintele sau aparținătorul. Sursa de adevăr pentru identitate.

@@ -1,4 +1,4 @@
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 // În Next.js dev, hot reload poate crea conexiuni multiple. Folosim un singleton.
@@ -10,9 +10,9 @@ declare global {
 function createClient() {
   const url = process.env.DATABASE_URL;
   if (!url) {
-    throw new Error("DATABASE_URL nu este setat. Verifică .env.");
+    throw new Error("DATABASE_URL nu este setat în .env");
   }
-  const adapter = new PrismaBetterSqlite3({ url });
+  const adapter = new PrismaPg({ connectionString: url });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],

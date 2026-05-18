@@ -47,3 +47,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Date import (conține telefoane și emailuri clienți — datele live sunt pe Neon)
+prisma/import/data.json
+.env.local.backup
