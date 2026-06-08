@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import type { LeadType } from "@/lib/domain";
+import { TASK_TYPE_DEFAULT_CATEGORY } from "@/lib/domain";
+import { requireEditor } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 
 const idSchema = z.object({ leadId: z.string().min(1) });
@@ -12,6 +13,7 @@ const idSchema = z.object({ leadId: z.string().min(1) });
  * Confirmă o rezervare: NEW/CONTACTED → CONFIRMED.
  */
 export async function confirmLead(formData: FormData) {
+  await requireEditor();
   const { leadId } = idSchema.parse({ leadId: formData.get("leadId") });
   await db.lead.update({
     where: { id: leadId },
@@ -26,6 +28,7 @@ export async function confirmLead(formData: FormData) {
  * (cât numărul de copii din rezervare) și NU mai facturăm vizita copiilor.
  */
 export async function markPresent(formData: FormData) {
+  await requireEditor();
   const { leadId } = idSchema.parse({ leadId: formData.get("leadId") });
 
   const lead = await db.lead.findUnique({
@@ -126,6 +129,7 @@ export async function markPresent(formData: FormData) {
  * Marchează NO-SHOW. Creează automat un task de re-contactare la +48h.
  */
 export async function markAbsent(formData: FormData) {
+  await requireEditor();
   const { leadId } = idSchema.parse({ leadId: formData.get("leadId") });
 
   const lead = await db.lead.findUnique({
@@ -146,6 +150,7 @@ export async function markAbsent(formData: FormData) {
       data: {
         title: `Recuperare no-show — ${lead.contact.firstName} ${lead.contact.lastName}`,
         type: "RECOVER_NO_SHOW",
+        category: TASK_TYPE_DEFAULT_CATEGORY.RECOVER_NO_SHOW,
         contactId: lead.contactId,
         leadId: lead.id,
         dueDate,
@@ -164,6 +169,7 @@ export async function markAbsent(formData: FormData) {
  * Anulează rezervarea. Tranzacțiile asociate (dacă există) se păstrează.
  */
 export async function cancelLead(formData: FormData) {
+  await requireEditor();
   const { leadId } = idSchema.parse({ leadId: formData.get("leadId") });
   await db.lead.update({
     where: { id: leadId },

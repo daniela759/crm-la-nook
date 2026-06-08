@@ -8,10 +8,12 @@ import {
 } from "@/lib/finance";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { requireSection } from "@/lib/permissions";
 
 const REF_TODAY = new Date(2026, 4, 16);
 
 export default async function IncasariPage() {
+  await requireSection("incasari");
   const [settings, funnel, future, upcoming] = await Promise.all([
     getSettings(),
     getMonthlyFunnel(REF_TODAY.getFullYear(), REF_TODAY.getMonth()),

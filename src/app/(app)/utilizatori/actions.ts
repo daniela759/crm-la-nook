@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { hashPassword, requireAdmin } from "@/lib/auth-server";
+import { hashPassword } from "@/lib/auth-server";
+import { requireSuperAdmin } from "@/lib/permissions";
+import { USER_ROLES } from "@/lib/domain";
 
 export type UserActionState = {
   ok?: boolean;
@@ -15,7 +17,7 @@ export type UserActionState = {
 const addSchema = z.object({
   email: z.string().trim().toLowerCase().email("Email invalid"),
   name: z.string().trim().max(100).optional().or(z.literal("")),
-  role: z.enum(["USER", "ADMIN"]).default("USER"),
+  role: z.enum(USER_ROLES).default("OPERATIONAL"),
 });
 
 function generatePassword(): string {
@@ -31,7 +33,7 @@ export async function addUserAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const parsed = addSchema.safeParse({
     email: formData.get("email"),
     name: formData.get("name"),
@@ -74,10 +76,10 @@ export async function addUserAction(
 const idSchema = z.object({ id: z.string().min(1) });
 
 export async function toggleActiveAction(formData: FormData) {
-  const current = await requireAdmin();
+  const current = await requireSuperAdmin();
   const { id } = idSchema.parse({ id: formData.get("id") });
   if (id === current.id) {
-    throw new Error("Nu te poți dezactiva singur — cere altui admin.");
+    throw new Error("Nu te poți dezactiva singur — cere altui super-admin.");
   }
   const u = await db.user.findUnique({ where: { id } });
   if (!u) return;
@@ -86,13 +88,13 @@ export async function toggleActiveAction(formData: FormData) {
 }
 
 export async function changeRoleAction(formData: FormData) {
-  const current = await requireAdmin();
+  const current = await requireSuperAdmin();
   const { id } = idSchema.parse({ id: formData.get("id") });
-  const newRole = String(formData.get("role") ?? "USER");
-  if (newRole !== "USER" && newRole !== "ADMIN") return;
-  if (id === current.id && newRole === "USER") {
+  const newRole = String(formData.get("role") ?? "OPERATIONAL");
+  if (!(USER_ROLES as readonly string[]).includes(newRole)) return;
+  if (id === current.id && newRole !== "SUPER_ADMIN") {
     throw new Error(
-      "Nu îți poți retrage propriul rol de admin — cere altui admin.",
+      "Nu îți poți retrage propriul rol de super-admin — cere altui super-admin.",
     );
   }
   await db.user.update({ where: { id }, data: { role: newRole } });
@@ -103,7 +105,7 @@ export async function resetPasswordAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
-  await requireAdmin();
+  await requireSuperAdmin();
   const { id } = idSchema.parse({ id: formData.get("id") });
   const u = await db.user.findUnique({ where: { id } });
   if (!u) return { ok: false, errors: { general: "Utilizator inexistent" } };

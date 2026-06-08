@@ -13,14 +13,23 @@ import type { LeadStatus } from "@/lib/domain";
  *  - ABSENT    → (nimic — final, taskul de recuperare e generat)
  *  - CANCELLED → (nimic)
  */
-export function LeadActions({ leadId, status }: { leadId: string; status: string }) {
+export function LeadActions({
+  leadId,
+  status,
+  editable = true,
+}: {
+  leadId: string;
+  status: string;
+  editable?: boolean;
+}) {
   const s = status as LeadStatus;
 
   const canConfirm = s === "NEW" || s === "CONTACTED";
   const canMarkOutcome = s === "CONFIRMED" || s === "NEW" || s === "CONTACTED";
   const canCancel = s !== "PRESENT" && s !== "ABSENT" && s !== "CANCELLED";
 
-  if (s === "PRESENT" || s === "ABSENT" || s === "CANCELLED") {
+  // Cont doar-citire (marketing) sau status final → fără butoane.
+  if (!editable || s === "PRESENT" || s === "ABSENT" || s === "CANCELLED") {
     return <span className="text-xs italic text-nook-ink-soft">—</span>;
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { USER_ROLES, USER_ROLE_LABEL, type UserRole } from "@/lib/domain";
 import {
   changeRoleAction,
   resetPasswordAction,
@@ -9,6 +10,12 @@ import {
 } from "./actions";
 
 const initial: UserActionState = {};
+
+const ROLE_SELECT_TONE: Record<UserRole, string> = {
+  SUPER_ADMIN: "bg-nook-terracotta/15 text-nook-terracotta ring-nook-terracotta/40",
+  MARKETING: "bg-nook-sand/50 text-nook-ink ring-nook-sand",
+  OPERATIONAL: "bg-nook-sage-light/40 text-nook-forest ring-nook-sage/40",
+};
 
 export function UserRow({
   user,
@@ -66,13 +73,15 @@ export function UserRow({
               disabled={isMe}
               onChange={(e) => e.currentTarget.form?.requestSubmit()}
               className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset disabled:opacity-60 disabled:cursor-not-allowed ${
-                user.role === "ADMIN"
-                  ? "bg-nook-terracotta/15 text-nook-terracotta ring-nook-terracotta/40"
-                  : "bg-nook-sage-light/40 text-nook-forest ring-nook-sage/40"
+                ROLE_SELECT_TONE[user.role as UserRole] ??
+                "bg-nook-line text-nook-ink-soft ring-nook-line"
               }`}
             >
-              <option value="USER">User</option>
-              <option value="ADMIN">Admin</option>
+              {USER_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {USER_ROLE_LABEL[r]}
+                </option>
+              ))}
             </select>
           </form>
 

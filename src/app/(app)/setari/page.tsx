@@ -9,8 +9,10 @@ import {
   ScoreRulesForm,
   TargetsForm,
 } from "./Forms";
+import { requireSection } from "@/lib/permissions";
 
 export default async function SetariPage() {
+  await requireSection("setari");
   const [settings, sources, interests] = await Promise.all([
     getSettings(),
     db.leadSource.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }] }),

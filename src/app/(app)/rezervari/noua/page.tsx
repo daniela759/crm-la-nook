@@ -4,8 +4,10 @@ import { PageContainer, PageHeader } from "@/components/PageHeader";
 import { IconBack } from "@/components/icons";
 import { getSettings } from "@/lib/settings";
 import { LeadForm } from "./Form";
+import { requireEditorPage } from "@/lib/permissions";
 
 export default async function RezervareNouaPage() {
+  await requireEditorPage("/rezervari");
   const [sources, contacts, settings] = await Promise.all([
     db.leadSource.findMany({
       where: { active: true },

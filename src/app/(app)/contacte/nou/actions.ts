@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireEditor } from "@/lib/permissions";
 
 const childSchema = z.object({
   name: z.string().trim().min(1, "Numele copilului e obligatoriu").max(80),
@@ -48,6 +49,7 @@ export async function createContact(
   _prev: CreateContactState,
   formData: FormData,
 ): Promise<CreateContactState> {
+  await requireEditor();
   // Reasamblăm copiii din indexarea din formular
   const childrenCount = Number(formData.get("childrenCount") ?? 0);
   const children: Array<{ name: string; birthDate: string; interestIds: string[] }> = [];

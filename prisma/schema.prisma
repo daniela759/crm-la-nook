@@ -154,13 +154,16 @@ model Transaction {
 
 /// Sarcina administratorului (manuală sau auto-generată).
 /// `type`: LEAD_FOLLOWUP | CALL_CONTACT | CONFIRM_RESERVATION | OFFER_SUBSCRIPTION | EVENT_PREP | RENEW_SUBSCRIPTION | RECOVER_NO_SHOW | OTHER
+/// `category` (tipologie): ADMINISTRATIVE | OPERATIONAL | SALES | MARKETING
 /// `priority`: HIGH | MEDIUM | LOW
 /// `status`: TODO | IN_PROGRESS | DONE
 /// `origin`: MANUAL | AUTO
 model Task {
-  id        String   @id @default(cuid())
-  title     String
-  type      String
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String
+  category    String   @default("OPERATIONAL")
   contactId String?
   contact   Contact? @relation(fields: [contactId], references: [id])
   leadId    String?
@@ -172,6 +175,7 @@ model Task {
   createdAt DateTime @default(now())
 
   @@index([status, dueDate])
+  @@index([category])
 }
 
 /// Eveniment organizat la Nook (atelier, întâlnire tematică).
@@ -215,13 +219,15 @@ model Settings {
 }
 
 /// Utilizatorii care pot intra în CRM.
-/// `role`: USER (operator standard) sau ADMIN (poate gestiona alți utilizatori)
+/// `role`: SUPER_ADMIN (vede și editează tot + utilizatori/setări) |
+///         MARKETING (agenția — vede tot, doar citește) |
+///         OPERATIONAL (personalul — taskuri operaționale, rezervări, calendar, contacte; fără financiar)
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
   name         String?
-  role         String   @default("USER")
+  role         String   @default("OPERATIONAL")
   active       Boolean  @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())

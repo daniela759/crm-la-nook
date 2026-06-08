@@ -3,6 +3,8 @@ import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { logoutAction } from "@/app/login/actions";
 import { getCurrentUser } from "@/lib/auth-server";
+import { canAccess } from "@/lib/permissions";
+import { USER_ROLE_LABEL, type UserRole } from "@/lib/domain";
 import {
   IconCalendar,
   IconCash,
@@ -16,8 +18,15 @@ import {
   IconUsers,
 } from "@/components/icons";
 
+const ROLE_BADGE: Record<UserRole, string> = {
+  SUPER_ADMIN: "bg-nook-terracotta/15 text-nook-terracotta",
+  MARKETING: "bg-nook-sand/50 text-nook-ink",
+  OPERATIONAL: "bg-nook-sage-light/40 text-nook-forest",
+};
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  const role = user?.role;
   return (
     <div className="flex flex-1 min-h-screen">
       {/* Sidebar */}
@@ -30,42 +39,62 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <nav className="flex flex-1 flex-col gap-1 px-3">
           <SidebarGroup title="Operațional">
-            <NavLink href="/dashboard" icon={<IconDashboard />}>
-              Dashboard
-            </NavLink>
-            <NavLink href="/taskuri" icon={<IconTasks />}>
-              Taskuri zilnice
-            </NavLink>
-            <NavLink href="/rezervari" icon={<IconReservations />}>
-              Rezervări
-            </NavLink>
-            <NavLink href="/calendar" icon={<IconCalendar />}>
-              Calendar
-            </NavLink>
+            {canAccess(role, "dashboard") && (
+              <NavLink href="/dashboard" icon={<IconDashboard />}>
+                Dashboard
+              </NavLink>
+            )}
+            {canAccess(role, "taskuri") && (
+              <NavLink href="/taskuri" icon={<IconTasks />}>
+                Taskuri zilnice
+              </NavLink>
+            )}
+            {canAccess(role, "rezervari") && (
+              <NavLink href="/rezervari" icon={<IconReservations />}>
+                Rezervări
+              </NavLink>
+            )}
+            {canAccess(role, "calendar") && (
+              <NavLink href="/calendar" icon={<IconCalendar />}>
+                Calendar
+              </NavLink>
+            )}
           </SidebarGroup>
 
-          <SidebarGroup title="Bani">
-            <NavLink href="/incasari" icon={<IconCash />}>
-              Încasări potențiale
-            </NavLink>
-            <NavLink href="/financiar" icon={<IconFinance />}>
-              Financiar
-            </NavLink>
-          </SidebarGroup>
+          {(canAccess(role, "incasari") || canAccess(role, "financiar")) && (
+            <SidebarGroup title="Bani">
+              {canAccess(role, "incasari") && (
+                <NavLink href="/incasari" icon={<IconCash />}>
+                  Încasări potențiale
+                </NavLink>
+              )}
+              {canAccess(role, "financiar") && (
+                <NavLink href="/financiar" icon={<IconFinance />}>
+                  Financiar
+                </NavLink>
+              )}
+            </SidebarGroup>
+          )}
 
           <SidebarGroup title="Date">
-            <NavLink href="/contacte" icon={<IconContacts />}>
-              Contacte
-            </NavLink>
-            <NavLink href="/abonamente" icon={<IconSubscription />}>
-              Abonamente
-            </NavLink>
-            <NavLink href="/setari" icon={<IconSettings />}>
-              Setări
-            </NavLink>
+            {canAccess(role, "contacte") && (
+              <NavLink href="/contacte" icon={<IconContacts />}>
+                Contacte
+              </NavLink>
+            )}
+            {canAccess(role, "abonamente") && (
+              <NavLink href="/abonamente" icon={<IconSubscription />}>
+                Abonamente
+              </NavLink>
+            )}
+            {canAccess(role, "setari") && (
+              <NavLink href="/setari" icon={<IconSettings />}>
+                Setări
+              </NavLink>
+            )}
           </SidebarGroup>
 
-          {user?.role === "ADMIN" && (
+          {canAccess(role, "utilizatori") && (
             <SidebarGroup title="Admin">
               <NavLink href="/utilizatori" icon={<IconUsers />}>
                 Utilizatori
@@ -83,12 +112,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
-                    user.role === "ADMIN"
-                      ? "bg-nook-terracotta/15 text-nook-terracotta"
-                      : "bg-nook-sage-light/40 text-nook-forest"
+                    ROLE_BADGE[user.role as UserRole] ?? "bg-nook-line text-nook-ink-soft"
                   }`}
                 >
-                  {user.role === "ADMIN" ? "Admin" : "User"}
+                  {USER_ROLE_LABEL[user.role as UserRole] ?? user.role}
                 </span>
               </div>
               <div className="mt-0.5 truncate text-xs font-semibold text-nook-ink">

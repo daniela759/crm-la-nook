@@ -7,8 +7,11 @@ import {
   type SubscriptionType,
 } from "@/lib/domain";
 import { formatDate, formatMoney } from "@/lib/format";
+import { isSuperAdmin, requireSection } from "@/lib/permissions";
 
 export default async function AbonamentePage() {
+  const me = await requireSection("abonamente");
+  const canSell = isSuperAdmin(me.role);
   const subs = await db.subscription.findMany({
     include: {
       contact: {
@@ -37,13 +40,15 @@ export default async function AbonamentePage() {
         title="Abonamente"
         description={`${active.length} active · ${consumed.length} consumate · venit total din abonamente: ${formatMoney(totalRevenue)}`}
         action={
-          <Link
-            href="/abonamente/nou"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
-          >
-            <IconPlus />
-            Vinde abonament
-          </Link>
+          canSell ? (
+            <Link
+              href="/abonamente/nou"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
+            >
+              <IconPlus />
+              Vinde abonament
+            </Link>
+          ) : undefined
         }
       />
 

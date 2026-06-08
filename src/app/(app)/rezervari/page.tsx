@@ -13,6 +13,8 @@ import {
   type LeadType,
 } from "@/lib/domain";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { getCurrentUser } from "@/lib/auth-server";
+import { canEdit } from "@/lib/permissions";
 
 type SearchParams = Promise<{
   status?: string;
@@ -26,6 +28,8 @@ export default async function RezervariPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
+  const me = await getCurrentUser();
+  const editable = canEdit(me?.role);
   const filterStatus = (LEAD_STATUSES as readonly string[]).includes(params.status ?? "")
     ? (params.status as LeadStatus)
     : null;
@@ -65,13 +69,15 @@ export default async function RezervariPage({
         title="Rezervări"
         description={`${totalLeads} ${totalLeads === 1 ? "rezervare" : "rezervări"} în total · ${countByStatus["NEW"] ?? 0} de confirmat, ${countByStatus["CONFIRMED"] ?? 0} confirmate`}
         action={
-          <Link
-            href="/rezervari/noua"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
-          >
-            <IconPlus />
-            Rezervare nouă
-          </Link>
+          editable ? (
+            <Link
+              href="/rezervari/noua"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
+            >
+              <IconPlus />
+              Rezervare nouă
+            </Link>
+          ) : undefined
         }
       />
 
@@ -104,7 +110,10 @@ export default async function RezervariPage({
 
       {/* Listă */}
       {leads.length === 0 ? (
-        <EmptyState hasFilters={!!(filterStatus || filterType || filterSource)} />
+        <EmptyState
+          hasFilters={!!(filterStatus || filterType || filterSource)}
+          canAdd={editable}
+        />
       ) : (
         <div className="mt-6 overflow-hidden rounded-2xl bg-nook-paper ring-1 ring-nook-line">
           <table className="w-full">
@@ -157,7 +166,7 @@ export default async function RezervariPage({
                     {l.estimatedValue > 0 ? formatMoney(l.estimatedValue) : "—"}
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <LeadActions leadId={l.id} status={l.status} />
+                    <LeadActions leadId={l.id} status={l.status} editable={editable} />
                   </td>
                 </tr>
               ))}
@@ -279,7 +288,7 @@ function SourceFilter({
   );
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+function EmptyState({ hasFilters, canAdd }: { hasFilters: boolean; canAdd: boolean }) {
   return (
     <div className="mt-8 rounded-2xl border border-dashed border-nook-line bg-nook-paper-warm/50 p-12 text-center">
       <h3 className="font-display text-xl font-bold text-nook-forest">
@@ -290,13 +299,15 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
           ? "Niciuna nu se potrivește filtrelor selectate. Resetează filtrele sau adaugă o rezervare nouă."
           : "Adaugă prima rezervare ca să începi."}
       </p>
-      <Link
-        href="/rezervari/noua"
-        className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
-      >
-        <IconPlus />
-        Rezervare nouă
-      </Link>
+      {canAdd && (
+        <Link
+          href="/rezervari/noua"
+          className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
+        >
+          <IconPlus />
+          Rezervare nouă
+        </Link>
+      )}
     </div>
   );
 }

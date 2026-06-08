@@ -9,6 +9,7 @@ import {
   SUBSCRIPTION_ENTRIES,
   SUBSCRIPTION_TYPES,
 } from "@/lib/domain";
+import { requireSuperAdmin } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 
 const schema = z.object({
@@ -28,6 +29,7 @@ export async function sellSubscription(
   _prev: SellSubscriptionState,
   formData: FormData,
 ): Promise<SellSubscriptionState> {
+  await requireSuperAdmin();
   const raw = {
     contactId: String(formData.get("contactId") ?? ""),
     type: String(formData.get("type") ?? ""),

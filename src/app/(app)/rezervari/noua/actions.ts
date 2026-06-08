@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { LEAD_TYPES } from "@/lib/domain";
+import { requireEditor } from "@/lib/permissions";
 import { estimateLeadValue } from "@/lib/pricing";
 import { getSettings } from "@/lib/settings";
 
@@ -54,6 +55,7 @@ export async function createLead(
   _prev: CreateLeadState,
   formData: FormData,
 ): Promise<CreateLeadState> {
+  await requireEditor();
   // Citește copiii pentru contact nou
   const newChildrenCount = Number(formData.get("newChildrenCount") ?? 0);
   const newChildren: Array<{ name: string; birthDate: string }> = [];

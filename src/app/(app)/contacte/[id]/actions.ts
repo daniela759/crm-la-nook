@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireEditor, requireSuperAdmin } from "@/lib/permissions";
 
 const updateSchema = z.object({
   id: z.string().min(1),
@@ -25,6 +26,7 @@ export async function updateContact(
   _prev: ContactActionState,
   formData: FormData,
 ): Promise<ContactActionState> {
+  await requireEditor();
   const raw = {
     id: String(formData.get("id") ?? ""),
     firstName: String(formData.get("firstName") ?? ""),
@@ -80,6 +82,7 @@ export async function updateContact(
 }
 
 export async function deleteContact(formData: FormData) {
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 
@@ -124,6 +127,7 @@ export async function addChild(
   _prev: ContactActionState,
   formData: FormData,
 ): Promise<ContactActionState> {
+  await requireEditor();
   const raw = {
     contactId: String(formData.get("contactId") ?? ""),
     name: String(formData.get("name") ?? ""),
@@ -156,6 +160,7 @@ export async function addChild(
 }
 
 export async function deleteChild(formData: FormData) {
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   const contactId = String(formData.get("contactId") ?? "");
   if (!id) return;

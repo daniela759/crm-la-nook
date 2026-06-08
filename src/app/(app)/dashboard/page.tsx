@@ -2,8 +2,9 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageContainer, PageHeader } from "@/components/PageHeader";
 import { TargetSemafor, BreakdownList } from "@/components/Finance";
-import { StatusBadge } from "@/components/StatusBadge";
+import { TypeBadge } from "@/components/StatusBadge";
 import { getSettings } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth-server";
 import {
   getMonthlyFunnel,
   getRevenueBySource,
@@ -16,13 +17,20 @@ import {
 } from "@/lib/scoring";
 import {
   PIPELINE_STAGE_LABEL,
+  TASK_TYPE_LABEL,
   type PipelineStage,
+  type TaskType,
 } from "@/lib/domain";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 
 const REF_TODAY = new Date(2026, 4, 16);
 
 export default async function DashboardPage() {
+  const me = await getCurrentUser();
+  if (me?.role === "OPERATIONAL") {
+    return <OperationalDashboard />;
+  }
+
   const settings = await getSettings();
   const year = REF_TODAY.getFullYear();
   const month = REF_TODAY.getMonth();
@@ -311,6 +319,170 @@ export default async function DashboardPage() {
           >
             Vezi toate taskurile →
           </Link>
+        </Section>
+      </div>
+    </PageContainer>
+  );
+}
+
+async function OperationalDashboard() {
+  const now = new Date();
+  const [opTasks, toConfirm, upcomingConfirmed] = await Promise.all([
+    db.task.findMany({
+      where: { status: { in: ["TODO", "IN_PROGRESS"] }, category: "OPERATIONAL" },
+      orderBy: [{ priority: "asc" }, { dueDate: "asc" }],
+      take: 12,
+      include: { contact: { select: { firstName: true, lastName: true } } },
+    }),
+    db.lead.findMany({
+      where: { status: "NEW" },
+      orderBy: { scheduledAt: "asc" },
+      take: 8,
+      include: { contact: { select: { firstName: true, lastName: true, phone: true } } },
+    }),
+    db.lead.findMany({
+      where: { status: "CONFIRMED" },
+      orderBy: { scheduledAt: "asc" },
+      take: 8,
+      include: { contact: { select: { firstName: true, lastName: true, phone: true } } },
+    }),
+  ]);
+
+  const overdueCount = opTasks.filter((t) => t.dueDate < now).length;
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Ziua ta la Nook"
+        description="Taskurile operaționale și rezervările care au nevoie de tine."
+      />
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <KpiCard
+          label="Taskuri operaționale"
+          value={opTasks.length.toString()}
+          help={overdueCount > 0 ? `${overdueCount} restante` : "la zi"}
+          tone={overdueCount > 0 ? "red" : "sage"}
+        />
+        <KpiCard
+          label="De confirmat"
+          value={toConfirm.length.toString()}
+          help="Rezervări noi care așteaptă confirmare"
+        />
+        <KpiCard
+          label="Confirmate ce urmează"
+          value={upcomingConfirmed.length.toString()}
+          help="Programări confirmate"
+          tone="sage"
+        />
+      </div>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+        <Section
+          title="Taskuri operaționale deschise"
+          subtitle="Cele mai urgente · vezi toate pe pagina Taskuri zilnice"
+        >
+          {opTasks.length === 0 ? (
+            <p className="text-sm italic text-nook-ink-soft">
+              Niciun task operațional deschis. 🎉
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {opTasks.map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-nook-paper-warm/40 p-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-nook-ink">{t.title}</div>
+                    <div className="text-[11px] text-nook-ink-soft">
+                      {TASK_TYPE_LABEL[t.type as TaskType] ?? t.type}
+                      {t.contact && ` · ${t.contact.lastName} ${t.contact.firstName}`}
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 text-[11px] ${t.dueDate < now ? "font-semibold text-state-red" : "text-nook-ink-soft"}`}
+                  >
+                    {formatDate(t.dueDate)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/taskuri"
+            className="mt-4 inline-block text-xs font-medium text-nook-forest hover:underline"
+          >
+            Vezi toate taskurile →
+          </Link>
+        </Section>
+
+        <Section
+          title="Rezervări de confirmat"
+          subtitle="Sună și confirmă programările noi"
+        >
+          {toConfirm.length === 0 ? (
+            <p className="text-sm italic text-nook-ink-soft">
+              Nimic de confirmat acum.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {toConfirm.map((l) => (
+                <li
+                  key={l.id}
+                  className="flex items-center justify-between gap-2 rounded-xl bg-nook-paper-warm/40 p-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-nook-ink">
+                      {l.contact.lastName} {l.contact.firstName}
+                    </div>
+                    <div className="text-[11px] text-nook-ink-soft">
+                      {formatDateTime(l.scheduledAt)} · {l.contact.phone}
+                    </div>
+                  </div>
+                  <TypeBadge type={l.type} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/rezervari"
+            className="mt-4 inline-block text-xs font-medium text-nook-forest hover:underline"
+          >
+            Vezi toate rezervările →
+          </Link>
+        </Section>
+      </div>
+
+      <div className="mt-4">
+        <Section
+          title="Următoarele rezervări confirmate"
+          subtitle="Ce urmează în program"
+        >
+          {upcomingConfirmed.length === 0 ? (
+            <p className="text-sm italic text-nook-ink-soft">
+              Nicio rezervare confirmată momentan.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {upcomingConfirmed.map((l) => (
+                <li
+                  key={l.id}
+                  className="flex items-center justify-between gap-2 rounded-xl bg-nook-paper-warm/40 p-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-nook-ink">
+                      {l.contact.lastName} {l.contact.firstName}
+                    </div>
+                    <div className="text-[11px] text-nook-ink-soft">
+                      {formatDateTime(l.scheduledAt)} · {l.contact.phone}
+                    </div>
+                  </div>
+                  <TypeBadge type={l.type} />
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
       </div>
     </PageContainer>

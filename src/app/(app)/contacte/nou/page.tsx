@@ -3,8 +3,10 @@ import { db } from "@/lib/db";
 import { PageContainer, PageHeader } from "@/components/PageHeader";
 import { IconBack } from "@/components/icons";
 import { ContactForm } from "./Form";
+import { requireEditorPage } from "@/lib/permissions";
 
 export default async function ContactNouPage() {
+  await requireEditorPage("/contacte");
   const [sources, interests] = await Promise.all([
     db.leadSource.findMany({
       where: { active: true },

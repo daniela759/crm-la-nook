@@ -103,11 +103,12 @@ export function AddUserForm() {
         <span className="text-xs font-medium text-nook-ink-soft">Rol</span>
         <select
           name="role"
-          defaultValue="USER"
+          defaultValue="OPERATIONAL"
           className="mt-1 w-full rounded-xl border border-nook-line bg-nook-paper px-3 py-2 text-sm focus:border-nook-forest focus:outline-none focus:ring-2 focus:ring-nook-forest/20"
         >
-          <option value="USER">User — operator standard</option>
-          <option value="ADMIN">Admin — poate gestiona utilizatori</option>
+          <option value="OPERATIONAL">Operațional — personal (taskuri, rezervări, calendar)</option>
+          <option value="MARKETING">Marketing — agenția (vede tot, doar citește)</option>
+          <option value="SUPER_ADMIN">Super-admin — acces total + utilizatori/setări</option>
         </select>
       </label>
 

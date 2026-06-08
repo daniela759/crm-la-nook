@@ -33,15 +33,5 @@ export async function getCurrentUser() {
   return user;
 }
 
-/** Throws dacă userul curent nu e admin. De folosit în pagini/Server Actions admin-only. */
-export async function requireAdmin() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") {
-    throw new Error("Doar administratorii pot accesa această pagină.");
-  }
-  return user;
-}
-
-export function isAdmin(user: { role?: string | null } | null): boolean {
-  return user?.role === "ADMIN";
-}
+// Notă: logica de rol (super-admin / editor / acces pe secțiuni) trăiește acum
+// în src/lib/permissions.ts — sursa unică de adevăr pentru permisiuni.

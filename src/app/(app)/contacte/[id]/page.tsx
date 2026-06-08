@@ -27,6 +27,8 @@ import {
   formatDateTime,
   formatMoney,
 } from "@/lib/format";
+import { getCurrentUser } from "@/lib/auth-server";
+import { canEdit, isSuperAdmin } from "@/lib/permissions";
 import { EditContactForm } from "./EditContactForm";
 import { AddChildForm, DeleteChildButton } from "./AddChildForm";
 import { DeleteContactButton } from "./DeleteContactButton";
@@ -75,6 +77,10 @@ export default async function ContactDetailPage({
 
   if (!contact) notFound();
 
+  const me = await getCurrentUser();
+  const editable = canEdit(me?.role);
+  const superAdmin = isSuperAdmin(me?.role);
+
   const score = computeScore(
     {
       leads: contact.leads,
@@ -116,12 +122,14 @@ export default async function ContactDetailPage({
         title={`${contact.lastName} ${contact.firstName}`}
         description={`${contact.email} · ${contact.phone}`}
         action={
-          <DeleteContactButton
-            contactId={contact.id}
-            contactName={`${contact.lastName} ${contact.firstName}`}
-            disabled={hasDependentData}
-            disabledReason="Are rezervări / abonamente / tranzacții — nu poate fi șters."
-          />
+          superAdmin ? (
+            <DeleteContactButton
+              contactId={contact.id}
+              contactName={`${contact.lastName} ${contact.firstName}`}
+              disabled={hasDependentData}
+              disabledReason="Are rezervări / abonamente / tranzacții — nu poate fi șters."
+            />
+          ) : undefined
         }
       />
 
@@ -157,7 +165,7 @@ export default async function ContactDetailPage({
           <h2 className="font-display text-lg font-bold text-nook-forest">
             Date contact
           </h2>
-          <EditContactForm contact={contact} sources={sources} />
+          {editable && <EditContactForm contact={contact} sources={sources} />}
         </div>
         <dl className="grid gap-4 sm:grid-cols-2">
           <InfoRow label="Email" value={contact.email} />
@@ -183,7 +191,7 @@ export default async function ContactDetailPage({
           <h2 className="font-display text-lg font-bold text-nook-forest">
             Copii ({contact.children.length})
           </h2>
-          <AddChildForm contactId={contact.id} interests={interests} />
+          {editable && <AddChildForm contactId={contact.id} interests={interests} />}
         </div>
         {contact.children.length === 0 ? (
           <p className="text-sm italic text-nook-ink-soft">
@@ -216,11 +224,13 @@ export default async function ContactDetailPage({
                     </div>
                   )}
                 </div>
-                <DeleteChildButton
-                  childId={ch.id}
-                  contactId={contact.id}
-                  childName={ch.name}
-                />
+                {superAdmin && (
+                  <DeleteChildButton
+                    childId={ch.id}
+                    contactId={contact.id}
+                    childName={ch.name}
+                  />
+                )}
               </li>
             ))}
           </ul>

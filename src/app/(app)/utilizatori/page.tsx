@@ -1,11 +1,12 @@
 import { db } from "@/lib/db";
 import { PageContainer, PageHeader } from "@/components/PageHeader";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireSection } from "@/lib/permissions";
+import { USER_ROLE_DESCRIPTION } from "@/lib/domain";
 import { AddUserForm } from "./AddUserForm";
 import { UserRow } from "./UserActions";
 
 export default async function UtilizatoriPage() {
-  const me = await requireAdmin();
+  const me = await requireSection("utilizatori");
 
   const users = await db.user.findMany({
     select: {
@@ -20,14 +21,15 @@ export default async function UtilizatoriPage() {
     orderBy: [{ active: "desc" }, { role: "desc" }, { createdAt: "asc" }],
   });
 
-  const admins = users.filter((u) => u.role === "ADMIN");
-  const operators = users.filter((u) => u.role === "USER");
+  const superAdmins = users.filter((u) => u.role === "SUPER_ADMIN");
+  const marketing = users.filter((u) => u.role === "MARKETING");
+  const operational = users.filter((u) => u.role === "OPERATIONAL");
 
   return (
     <PageContainer>
       <PageHeader
         title="Utilizatori"
-        description={`${users.length} conturi în total · ${admins.length} admin · ${operators.length} operatori`}
+        description={`${users.length} conturi · ${superAdmins.length} super-admin · ${marketing.length} marketing · ${operational.length} operațional`}
       />
 
       <div className="mt-6">
@@ -35,27 +37,42 @@ export default async function UtilizatoriPage() {
       </div>
 
       <div className="mt-8 space-y-6">
-        <Section title={`Admin (${admins.length})`} tone="terracotta">
-          {admins.length === 0 ? (
-            <p className="text-sm italic text-nook-ink-soft">Niciun admin.</p>
+        <Section title={`Super-admin (${superAdmins.length})`} tone="terracotta">
+          {superAdmins.length === 0 ? (
+            <p className="text-sm italic text-nook-ink-soft">Niciun super-admin.</p>
           ) : (
             <ul className="space-y-2">
-              {admins.map((u) => (
+              {superAdmins.map((u) => (
                 <UserRow key={u.id} user={u} currentUserId={me.id} />
               ))}
             </ul>
           )}
         </Section>
 
-        <Section title={`Operatori (${operators.length})`} tone="forest">
-          {operators.length === 0 ? (
+        <Section title={`Marketing (${marketing.length})`} tone="sand">
+          {marketing.length === 0 ? (
             <p className="text-sm italic text-nook-ink-soft">
-              Niciun operator. Adaugă utilizatori care doar operează zilnic (fără
-              acces la setări sau utilizatori).
+              Niciun cont de marketing. Adaugă agenția — vede tot, dar doar
+              citește (fără editări).
             </p>
           ) : (
             <ul className="space-y-2">
-              {operators.map((u) => (
+              {marketing.map((u) => (
+                <UserRow key={u.id} user={u} currentUserId={me.id} />
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title={`Operațional (${operational.length})`} tone="forest">
+          {operational.length === 0 ? (
+            <p className="text-sm italic text-nook-ink-soft">
+              Niciun cont operațional. Adaugă personalul din spațiu — taskuri
+              operaționale, rezervări, calendar și contacte.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {operational.map((u) => (
                 <UserRow key={u.id} user={u} currentUserId={me.id} />
               ))}
             </ul>
@@ -67,16 +84,18 @@ export default async function UtilizatoriPage() {
         <h3 className="font-display text-sm font-bold text-nook-forest mb-2">
           Despre roluri
         </h3>
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           <li>
-            <strong className="text-nook-terracotta">Admin</strong> · vede pagina
-            <em> Utilizatori</em>, poate adăuga / dezactiva conturi, schimba
-            roluri și reseta parole.
+            <strong className="text-nook-terracotta">Super-admin</strong> ·{" "}
+            {USER_ROLE_DESCRIPTION.SUPER_ADMIN}
           </li>
           <li>
-            <strong className="text-nook-forest">User</strong> · operator
-            standard. Vede tot CRM-ul (Dashboard, Rezervări, Calendar etc.) și
-            poate edita date, dar nu accesează <em>Utilizatori</em>.
+            <strong className="text-nook-ink">Marketing</strong> ·{" "}
+            {USER_ROLE_DESCRIPTION.MARKETING}
+          </li>
+          <li>
+            <strong className="text-nook-forest">Operațional</strong> ·{" "}
+            {USER_ROLE_DESCRIPTION.OPERATIONAL}
           </li>
         </ul>
       </div>
@@ -90,12 +109,13 @@ function Section({
   children,
 }: {
   title: string;
-  tone: "forest" | "terracotta";
+  tone: "forest" | "terracotta" | "sand";
   children: React.ReactNode;
 }) {
   const toneClass = {
     forest: "text-nook-forest",
     terracotta: "text-nook-terracotta",
+    sand: "text-nook-ink",
   };
   return (
     <div>

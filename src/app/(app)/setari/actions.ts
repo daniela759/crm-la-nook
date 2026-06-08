@@ -9,6 +9,7 @@ import {
   DEFAULT_SCORE_RULES,
   DEFAULT_TARGETS,
 } from "@/lib/domain";
+import { requireSuperAdmin } from "@/lib/permissions";
 
 const pricesSchema = z.object({
   childVisit: z.coerce.number().int().min(0).max(10000),
@@ -63,6 +64,7 @@ export async function updatePrices(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireSuperAdmin();
   const parsed = pricesSchema.safeParse({
     childVisit: formData.get("childVisit"),
     parentVisit: formData.get("parentVisit"),
@@ -95,6 +97,7 @@ export async function updateTargets(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireSuperAdmin();
   const parsed = targetsSchema.safeParse({
     survival: formData.get("survival"),
     breakEven: formData.get("breakEven"),
@@ -134,6 +137,7 @@ export async function updateSchedule(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireSuperAdmin();
   const parsed = scheduleSchema.safeParse({
     weekdayMorningStart: formData.get("weekdayMorningStart"),
     weekdayMorningEnd: formData.get("weekdayMorningEnd"),
@@ -177,6 +181,7 @@ export async function updateScoreRules(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireSuperAdmin();
   const parsed = scoreRulesSchema.safeParse({
     booking: formData.get("booking"),
     confirmed: formData.get("confirmed"),
@@ -219,6 +224,7 @@ export async function addLeadSource(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireSuperAdmin();
   const parsed = listSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const exists = await db.leadSource.findUnique({ where: { name: parsed.data.name } });
@@ -229,6 +235,7 @@ export async function addLeadSource(
 }
 
 export async function toggleLeadSource(formData: FormData) {
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const s = await db.leadSource.findUnique({ where: { id } });
@@ -241,6 +248,7 @@ export async function addInterest(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireSuperAdmin();
   const parsed = listSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const exists = await db.interest.findUnique({ where: { name: parsed.data.name } });
@@ -251,6 +259,7 @@ export async function addInterest(
 }
 
 export async function toggleInterest(formData: FormData) {
+  await requireSuperAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const it = await db.interest.findUnique({ where: { id } });

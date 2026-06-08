@@ -9,6 +9,7 @@
  * pentru aceeași entitate / tip înainte de a crea unul nou.
  */
 import { db } from "@/lib/db";
+import { TASK_TYPE_DEFAULT_CATEGORY } from "@/lib/domain";
 import { getSettings } from "@/lib/settings";
 import { computeScore, computeStage } from "@/lib/scoring";
 
@@ -50,6 +51,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       data: {
         title: `Confirmă rezervarea — ${lead.contact.lastName} ${lead.contact.firstName}`,
         type: "CONFIRM_RESERVATION",
+        category: TASK_TYPE_DEFAULT_CATEGORY.CONFIRM_RESERVATION,
         contactId: lead.contactId,
         leadId: lead.id,
         dueDate: now,
@@ -96,6 +98,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       data: {
         title: `Ofertă abonament — ${c.lastName} ${c.firstName} (scor ${score})`,
         type: "OFFER_SUBSCRIPTION",
+        category: TASK_TYPE_DEFAULT_CATEGORY.OFFER_SUBSCRIPTION,
         contactId: c.id,
         dueDate,
         priority: "HIGH",
@@ -133,6 +136,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
             ? `Reînnoire abonament — ${s.contact.lastName} ${s.contact.firstName} (consumat)`
             : `Reînnoire abonament — ${s.contact.lastName} ${s.contact.firstName} (mai are 1 intrare)`,
         type: "RENEW_SUBSCRIPTION",
+        category: TASK_TYPE_DEFAULT_CATEGORY.RENEW_SUBSCRIPTION,
         contactId: s.contactId,
         dueDate,
         priority: "MEDIUM",
@@ -174,6 +178,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       data: {
         title: `Reactivare — ${c.lastName} ${c.firstName} (60+ zile inactiv)`,
         type: "LEAD_FOLLOWUP",
+        category: TASK_TYPE_DEFAULT_CATEGORY.LEAD_FOLLOWUP,
         contactId: c.id,
         dueDate,
         priority: "LOW",

@@ -3,9 +3,11 @@ import { db } from "@/lib/db";
 import { PageContainer, PageHeader } from "@/components/PageHeader";
 import { IconBack } from "@/components/icons";
 import { getSettings } from "@/lib/settings";
+import { requireSuperAdminPage } from "@/lib/permissions";
 import { SellSubscriptionForm } from "./Form";
 
 export default async function AbonamentNouPage() {
+  await requireSuperAdminPage("/abonamente");
   const [contacts, settings] = await Promise.all([
     db.contact.findMany({
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],

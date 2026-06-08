@@ -14,6 +14,7 @@ import {
   TargetSemafor,
 } from "@/components/Finance";
 import { formatMoney } from "@/lib/format";
+import { requireSection } from "@/lib/permissions";
 
 type SearchParams = Promise<{ y?: string; m?: string }>;
 
@@ -24,6 +25,7 @@ export default async function FinanciarPage({
 }: {
   searchParams: SearchParams;
 }) {
+  await requireSection("financiar");
   const { y: yParam, m: mParam } = await searchParams;
   const year = Number(yParam) || REF_TODAY.getFullYear();
   const month =

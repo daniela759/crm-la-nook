@@ -5,6 +5,8 @@ import { IconPlus, IconArrowRight } from "@/components/icons";
 import { getSettings } from "@/lib/settings";
 import { computeScore, computeStage, scoreTone, SCORE_TONE_LABEL } from "@/lib/scoring";
 import { PIPELINE_STAGE_LABEL, type PipelineStage } from "@/lib/domain";
+import { getCurrentUser } from "@/lib/auth-server";
+import { canEdit } from "@/lib/permissions";
 
 function ageFromBirthDate(birth: Date): number {
   const today = new Date(2026, 4, 16); // referință luna demo
@@ -31,6 +33,8 @@ export default async function ContactePage({
 }) {
   const { q } = await searchParams;
   const query = (q ?? "").trim();
+  const me = await getCurrentUser();
+  const editable = canEdit(me?.role);
 
   const where = query
     ? {
@@ -79,13 +83,15 @@ export default async function ContactePage({
         title="Contacte"
         description={`${totalAll} ${totalAll === 1 ? "părinte / aparținător" : "părinți / aparținători"} în baza de date.`}
         action={
-          <Link
-            href="/contacte/nou"
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
-          >
-            <IconPlus />
-            Contact nou
-          </Link>
+          editable ? (
+            <Link
+              href="/contacte/nou"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"
+            >
+              <IconPlus />
+              Contact nou
+            </Link>
+          ) : undefined
         }
       />
 
@@ -110,7 +116,7 @@ export default async function ContactePage({
 
       {/* Listă */}
       {contacts.length === 0 ? (
-        <EmptyState query={query} />
+        <EmptyState query={query} canAdd={editable} />
       ) : (
         <div className="mt-6 overflow-hidden rounded-2xl bg-nook-paper ring-1 ring-nook-line">
           <table className="w-full">
@@ -228,7 +234,7 @@ function StageBadge({ stage }: { stage: PipelineStage }) {
   );
 }
 
-function EmptyState({ query }: { query: string }) {
+function EmptyState({ query, canAdd }: { query: string; canAdd: boolean }) {
   return (
     <div className="mt-8 rounded-2xl border border-dashed border-nook-line bg-nook-paper-warm/50 p-12 text-center">
       <h3 className="font-display text-xl font-bold text-nook-forest">
@@ -239,7 +245,7 @@ function EmptyState({ query }: { query: string }) {
           ? `Nimic nu se potrivește cu „${query}". Încearcă alt termen sau resetează căutarea.`
           : "Adaugă primul părinte ca să începi. Copiii lui și rezervările se vor lega de aici."}
       </p>
-      {!query && (
+      {!query && canAdd && (
         <Link
           href="/contacte/nou"
           className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-nook-forest px-5 text-sm font-medium text-nook-paper transition-colors hover:bg-nook-ink"

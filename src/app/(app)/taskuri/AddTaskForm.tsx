@@ -4,10 +4,10 @@ import { useActionState, useState } from "react";
 import {
   PRIORITIES,
   PRIORITY_LABEL,
+  TASK_CATEGORY_LABEL,
   TASK_TYPES,
   TASK_TYPE_LABEL,
-  type Priority,
-  type TaskType,
+  type TaskCategory,
 } from "@/lib/domain";
 import { addManualTask, type AddTaskState } from "./actions";
 
@@ -15,8 +15,10 @@ const initial: AddTaskState = {};
 
 export function AddTaskForm({
   contacts,
+  allowedCategories,
 }: {
   contacts: Array<{ id: string; firstName: string; lastName: string }>;
+  allowedCategories: TaskCategory[];
 }) {
   const [state, action, pending] = useActionState(addManualTask, initial);
   const [open, setOpen] = useState(false);
@@ -67,7 +69,34 @@ export function AddTaskForm({
         placeholder="ex. Sună mama Anei pentru ziua de naștere"
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <label className="block">
+        <span className="text-xs font-medium text-nook-ink-soft">
+          Detalii (opțional)
+        </span>
+        <textarea
+          name="description"
+          rows={3}
+          placeholder="Context, pași, cine ce face…"
+          className="mt-1 w-full rounded-xl border border-nook-line bg-nook-paper px-4 py-2 text-sm focus:border-nook-forest focus:outline-none focus:ring-2 focus:ring-nook-forest/20"
+        />
+      </label>
+
+      {allowedCategories.length <= 1 && (
+        <input type="hidden" name="category" value={allowedCategories[0] ?? "OPERATIONAL"} />
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {allowedCategories.length > 1 && (
+          <SelectField
+            label="Tipologie"
+            name="category"
+            defaultValue="OPERATIONAL"
+            options={allowedCategories.map((c) => ({
+              value: c,
+              label: TASK_CATEGORY_LABEL[c],
+            }))}
+          />
+        )}
         <SelectField
           label="Tip"
           name="type"

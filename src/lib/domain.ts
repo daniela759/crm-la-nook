@@ -103,6 +103,29 @@ export const TASK_TYPE_LABEL: Record<TaskType, string> = {
   OTHER: "Altul",
 };
 
+// ─── Task category (tipologie) ───────────────────────────────────────────────
+// Dimensiune separată de `type`: gruparea pe arii de responsabilitate.
+export const TASK_CATEGORIES = ["ADMINISTRATIVE", "OPERATIONAL", "SALES", "MARKETING"] as const;
+export type TaskCategory = (typeof TASK_CATEGORIES)[number];
+export const TASK_CATEGORY_LABEL: Record<TaskCategory, string> = {
+  ADMINISTRATIVE: "Administrativ",
+  OPERATIONAL: "Operațional",
+  SALES: "Vânzări",
+  MARKETING: "Marketing",
+};
+
+/** Categoria implicită pentru fiecare tip de task — folosită la generarea automată și ca sugestie în formular. */
+export const TASK_TYPE_DEFAULT_CATEGORY: Record<TaskType, TaskCategory> = {
+  LEAD_FOLLOWUP: "SALES",
+  CALL_CONTACT: "SALES",
+  CONFIRM_RESERVATION: "OPERATIONAL",
+  OFFER_SUBSCRIPTION: "SALES",
+  EVENT_PREP: "OPERATIONAL",
+  RENEW_SUBSCRIPTION: "SALES",
+  RECOVER_NO_SHOW: "SALES",
+  OTHER: "ADMINISTRATIVE",
+};
+
 // ─── Priority ───────────────────────────────────────────────────────────────
 export const PRIORITIES = ["HIGH", "MEDIUM", "LOW"] as const;
 export type Priority = (typeof PRIORITIES)[number];
@@ -124,6 +147,23 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
 // ─── Task origin ────────────────────────────────────────────────────────────
 export const TASK_ORIGINS = ["MANUAL", "AUTO"] as const;
 export type TaskOrigin = (typeof TASK_ORIGINS)[number];
+
+// ─── User roles (acces) ───────────────────────────────────────────────────────
+export const USER_ROLES = ["SUPER_ADMIN", "MARKETING", "OPERATIONAL"] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+export const USER_ROLE_LABEL: Record<UserRole, string> = {
+  SUPER_ADMIN: "Super-admin",
+  MARKETING: "Marketing",
+  OPERATIONAL: "Operațional",
+};
+export const USER_ROLE_DESCRIPTION: Record<UserRole, string> = {
+  SUPER_ADMIN:
+    "Acces complet — vede și editează tot, gestionează utilizatori și setări.",
+  MARKETING:
+    "Agenția de marketing — vede tot (încărcare, financiar, rezervări, abonamente, taskuri) dar doar citește, nu modifică.",
+  OPERATIONAL:
+    "Personalul din spațiu — taskurile operaționale ale zilei, rezervări, calendar și contacte. Fără date financiare.",
+};
 
 // ─── Event status ───────────────────────────────────────────────────────────
 export const EVENT_STATUSES = ["PLANNED", "IN_PROGRESS", "FINISHED", "CANCELLED"] as const;
