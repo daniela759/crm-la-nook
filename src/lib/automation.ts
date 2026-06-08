@@ -43,7 +43,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       where: {
         leadId: lead.id,
         type: "CONFIRM_RESERVATION",
-        status: { in: ["TODO", "IN_PROGRESS"] },
+        status: { in: ["NEW", "IN_PROGRESS"] },
       },
     });
     if (exists) continue;
@@ -56,7 +56,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
         leadId: lead.id,
         dueDate: now,
         priority: "HIGH",
-        status: "TODO",
+        status: "NEW",
         origin: "AUTO",
       },
     });
@@ -86,7 +86,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       where: {
         contactId: c.id,
         type: "OFFER_SUBSCRIPTION",
-        status: { in: ["TODO", "IN_PROGRESS"] },
+        status: { in: ["NEW", "IN_PROGRESS"] },
       },
     });
     if (exists) continue;
@@ -102,7 +102,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
         contactId: c.id,
         dueDate,
         priority: "HIGH",
-        status: "TODO",
+        status: "NEW",
         origin: "AUTO",
       },
     });
@@ -120,7 +120,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       where: {
         contactId: s.contactId,
         type: "RENEW_SUBSCRIPTION",
-        status: { in: ["TODO", "IN_PROGRESS"] },
+        status: { in: ["NEW", "IN_PROGRESS"] },
       },
     });
     if (exists) continue;
@@ -140,7 +140,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
         contactId: s.contactId,
         dueDate,
         priority: "MEDIUM",
-        status: "TODO",
+        status: "NEW",
         origin: "AUTO",
       },
     });
@@ -166,7 +166,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
       where: {
         contactId: c.id,
         type: "LEAD_FOLLOWUP",
-        status: { in: ["TODO", "IN_PROGRESS"] },
+        status: { in: ["NEW", "IN_PROGRESS"] },
       },
     });
     if (exists) continue;
@@ -182,7 +182,7 @@ export async function runAutomations(now = new Date()): Promise<AutomationResult
         contactId: c.id,
         dueDate,
         priority: "LOW",
-        status: "TODO",
+        status: "NEW",
         origin: "AUTO",
       },
     });

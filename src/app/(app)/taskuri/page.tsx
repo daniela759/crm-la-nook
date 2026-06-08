@@ -4,21 +4,20 @@ import { PageContainer, PageHeader } from "@/components/PageHeader";
 import {
   PRIORITY_LABEL,
   TASK_CATEGORY_LABEL,
+  TASK_STATUS_LABEL,
+  TASK_STATUSES,
   TASK_TYPE_LABEL,
   type Priority,
   type TaskCategory,
+  type TaskStatus,
   type TaskType,
 } from "@/lib/domain";
 import { formatDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/auth-server";
-import { canEdit, isSuperAdmin, visibleTaskCategories } from "@/lib/permissions";
-import {
-  completeTask,
-  reopenTask,
-  runAutomationsAction,
-  snoozeTask,
-} from "./actions";
+import { canManageTasks, isSuperAdmin, visibleTaskCategories } from "@/lib/permissions";
+import { runAutomationsAction } from "./actions";
 import { AddTaskForm } from "./AddTaskForm";
+import { TaskControls } from "./TaskControls";
 
 const PRIORITY_TONE: Record<Priority, string> = {
   HIGH: "bg-state-red/15 text-state-red ring-state-red/40",
@@ -33,6 +32,13 @@ const CATEGORY_TONE: Record<TaskCategory, string> = {
   MARKETING: "bg-nook-sand/50 text-nook-ink",
 };
 
+const STATUS_HEADING_TONE: Record<TaskStatus, string> = {
+  NEW: "text-nook-forest",
+  IN_PROGRESS: "text-nook-sage",
+  POSTPONED: "text-state-yellow",
+  DONE: "text-nook-ink-soft",
+};
+
 export default async function TaskuriPage({
   searchParams,
 }: {
@@ -41,7 +47,7 @@ export default async function TaskuriPage({
   const user = await getCurrentUser();
   const role = user?.role;
   const allowedCats = visibleTaskCategories(role);
-  const editable = canEdit(role);
+  const manage = canManageTasks(role);
   const superAdmin = isSuperAdmin(role);
   const showCategoryFilter = allowedCats.length > 1;
 
@@ -60,11 +66,10 @@ export default async function TaskuriPage({
       where: categoryWhere,
       include: {
         contact: { select: { firstName: true, lastName: true } },
-        lead: { select: { id: true, scheduledAt: true, type: true } },
       },
-      orderBy: [{ status: "asc" }, { priority: "asc" }, { dueDate: "asc" }],
+      orderBy: [{ priority: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }],
     }),
-    editable
+    manage
       ? db.contact.findMany({
           select: { id: true, firstName: true, lastName: true },
           orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -83,22 +88,17 @@ export default async function TaskuriPage({
   for (const c of categoryCounts) counts[c.category] = c._count._all;
   const totalActive = Object.values(counts).reduce((a, b) => a + b, 0);
 
-  const todo = tasks.filter((t) => t.status !== "DONE");
-  const done = tasks.filter((t) => t.status === "DONE");
-
-  const now = new Date();
-  const overdue = todo.filter((t) => t.dueDate < now);
-  const today = todo.filter((t) => sameDay(t.dueDate, now) && t.dueDate >= now);
-  const upcoming = todo.filter((t) => t.dueDate > now && !sameDay(t.dueDate, now));
+  const openCount = tasks.filter((t) => t.status !== "DONE").length;
+  const doneCount = tasks.filter((t) => t.status === "DONE").length;
 
   return (
     <PageContainer>
       <PageHeader
-        title="Taskuri zilnice"
+        title="Taskuri"
         description={
           showCategoryFilter
-            ? `${todo.length} ${todo.length === 1 ? "task" : "taskuri"} active · ${overdue.length} restante · ${done.length} făcute`
-            : `Taskurile operaționale · ${todo.length} active · ${overdue.length} restante`
+            ? `${openCount} ${openCount === 1 ? "task activ" : "taskuri active"} · ${doneCount} finalizate`
+            : `Taskurile operaționale · ${openCount} active`
         }
         action={
           superAdmin ? (
@@ -121,60 +121,37 @@ export default async function TaskuriPage({
         </div>
       )}
 
-      {/* Adăugare task manual — doar conturile care pot edita */}
-      {editable && (
+      {/* Adăugare task manual — super-admin, marketing și operational */}
+      {manage && (
         <div className="mt-6">
           <AddTaskForm contacts={contacts} allowedCategories={allowedCats} />
         </div>
       )}
 
-      <div className="mt-8 space-y-8">
-        {overdue.length > 0 && (
-          <TaskGroup
-            title={`Restante (${overdue.length})`}
-            tone="red"
-            tasks={overdue}
-            editable={editable}
-            showCategory={showCategoryFilter}
-          />
-        )}
-        <TaskGroup
-          title={today.length > 0 ? `Astăzi (${today.length})` : "Astăzi — nimic urgent"}
-          tone="forest"
-          tasks={today}
-          editable={editable}
-          showCategory={showCategoryFilter}
-          emptyText="Nimic urgent pentru ziua de azi."
-        />
-        {upcoming.length > 0 && (
-          <TaskGroup
-            title={`În următoarele zile (${upcoming.length})`}
-            tone="sage"
-            tasks={upcoming}
-            editable={editable}
-            showCategory={showCategoryFilter}
-          />
-        )}
-        {done.length > 0 && (
-          <TaskGroup
-            title={`Făcute (${done.length})`}
-            tone="muted"
-            tasks={done.slice(0, 10)}
-            done
-            editable={editable}
-            showCategory={showCategoryFilter}
-          />
-        )}
-      </div>
+      {openCount === 0 && doneCount === 0 ? (
+        <p className="mt-8 text-sm italic text-nook-ink-soft">
+          Niciun task încă. {manage ? "Adaugă unul cu butonul de mai sus." : ""}
+        </p>
+      ) : (
+        <div className="mt-8 space-y-8">
+          {TASK_STATUSES.map((status) => {
+            const group = tasks.filter((t) => t.status === status);
+            if (group.length === 0) return null;
+            const shown = status === "DONE" ? group.slice(0, 15) : group;
+            return (
+              <StatusGroup
+                key={status}
+                status={status}
+                count={group.length}
+                tasks={shown}
+                manage={manage}
+                showCategory={showCategoryFilter}
+              />
+            );
+          })}
+        </div>
+      )}
     </PageContainer>
-  );
-}
-
-function sameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
   );
 }
 
@@ -229,105 +206,74 @@ function CatChip({
   );
 }
 
-function TaskGroup({
-  title,
-  tone,
-  tasks,
-  done = false,
-  editable,
-  showCategory,
-  emptyText,
-}: {
+type TaskRowData = {
+  id: string;
   title: string;
-  tone: "red" | "forest" | "sage" | "muted";
-  tasks: Array<{
-    id: string;
-    title: string;
-    description: string | null;
-    type: string;
-    category: string;
-    priority: string;
-    dueDate: Date;
-    origin: string;
-    status: string;
-    contact: { firstName: string; lastName: string } | null;
-    lead: { id: string; scheduledAt: Date; type: string } | null;
-  }>;
-  done?: boolean;
-  editable: boolean;
+  description: string | null;
+  type: string;
+  category: string;
+  priority: string;
+  status: string;
+  dueDate: Date | null;
+  origin: string;
+  contact: { firstName: string; lastName: string } | null;
+};
+
+function StatusGroup({
+  status,
+  count,
+  tasks,
+  manage,
+  showCategory,
+}: {
+  status: TaskStatus;
+  count: number;
+  tasks: TaskRowData[];
+  manage: boolean;
   showCategory: boolean;
-  emptyText?: string;
 }) {
-  const toneClasses = {
-    red: "text-state-red",
-    forest: "text-nook-forest",
-    sage: "text-nook-sage",
-    muted: "text-nook-ink-soft",
-  };
   return (
     <div>
       <h2
-        className={`font-display text-sm font-bold tracking-widest uppercase mb-3 ${toneClasses[tone]}`}
+        className={`mb-3 font-display text-sm font-bold uppercase tracking-widest ${STATUS_HEADING_TONE[status]}`}
       >
-        {title}
+        {TASK_STATUS_LABEL[status]} ({count})
       </h2>
-      {tasks.length === 0 && emptyText ? (
-        <p className="text-sm italic text-nook-ink-soft">{emptyText}</p>
-      ) : (
-        <ul className="space-y-2">
-          {tasks.map((t) => (
-            <TaskRow
-              key={t.id}
-              task={t}
-              done={done}
-              editable={editable}
-              showCategory={showCategory}
-            />
-          ))}
-        </ul>
-      )}
+      <ul className="space-y-2">
+        {tasks.map((t) => (
+          <TaskRow key={t.id} task={t} manage={manage} showCategory={showCategory} />
+        ))}
+      </ul>
     </div>
   );
 }
 
 function TaskRow({
   task,
-  done,
-  editable,
+  manage,
   showCategory,
 }: {
-  task: {
-    id: string;
-    title: string;
-    description: string | null;
-    type: string;
-    category: string;
-    priority: string;
-    dueDate: Date;
-    origin: string;
-    status: string;
-    contact: { firstName: string; lastName: string } | null;
-  };
-  done: boolean;
-  editable: boolean;
+  task: TaskRowData;
+  manage: boolean;
   showCategory: boolean;
 }) {
   const priority = task.priority as Priority;
   const category = task.category as TaskCategory;
+  const done = task.status === "DONE";
+  const overdue = task.dueDate && task.dueDate < new Date() && !done;
   return (
     <li
-      className={`flex items-center gap-3 rounded-2xl bg-nook-paper ring-1 ring-nook-line p-4 ${done ? "opacity-60" : ""}`}
+      className={`flex items-start gap-3 rounded-2xl bg-nook-paper p-4 ring-1 ring-nook-line ${done ? "opacity-60" : ""}`}
     >
-      {/* Indicator prioritate */}
       <span
-        className={`shrink-0 inline-flex items-center justify-center rounded-full ring-1 ring-inset h-6 w-6 text-[10px] font-bold ${PRIORITY_TONE[priority] ?? PRIORITY_TONE.MEDIUM}`}
+        className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-1 ring-inset ${PRIORITY_TONE[priority] ?? PRIORITY_TONE.MEDIUM}`}
         title={PRIORITY_LABEL[priority] ?? task.priority}
       >
         {priority === "HIGH" ? "!" : priority === "MEDIUM" ? "•" : "·"}
       </span>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
           {showCategory && (
             <span
               className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${CATEGORY_TONE[category] ?? CATEGORY_TONE.ADMINISTRATIVE}`}
@@ -335,9 +281,7 @@ function TaskRow({
               {TASK_CATEGORY_LABEL[category] ?? task.category}
             </span>
           )}
-          <div
-            className={`font-semibold text-nook-ink ${done ? "line-through" : ""}`}
-          >
+          <div className={`font-semibold text-nook-ink ${done ? "line-through" : ""}`}>
             {task.title}
           </div>
         </div>
@@ -346,10 +290,12 @@ function TaskRow({
             {task.description}
           </p>
         )}
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-nook-ink-soft">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-nook-ink-soft">
           <span>{TASK_TYPE_LABEL[task.type as TaskType] ?? task.type}</span>
           <span>·</span>
-          <span>Scadent {formatDate(task.dueDate)}</span>
+          <span className={overdue ? "font-semibold text-state-red" : ""}>
+            {task.dueDate ? `Scadent ${formatDate(task.dueDate)}` : "Fără termen"}
+          </span>
           {task.contact && (
             <>
               <span>·</span>
@@ -365,43 +311,12 @@ function TaskRow({
         </div>
       </div>
 
-      {/* Acțiuni — doar conturile care pot edita */}
-      {editable && (
-        <div className="flex shrink-0 gap-1.5">
-          {done ? (
-            <form action={reopenTask}>
-              <input type="hidden" name="taskId" value={task.id} />
-              <button
-                type="submit"
-                className="rounded-full px-3 py-1 text-xs text-nook-ink-soft hover:text-nook-ink hover:bg-nook-paper-warm"
-              >
-                ↶ Redeschide
-              </button>
-            </form>
-          ) : (
-            <>
-              <form action={snoozeTask}>
-                <input type="hidden" name="taskId" value={task.id} />
-                <button
-                  type="submit"
-                  className="rounded-full px-3 py-1 text-xs text-nook-ink-soft hover:text-nook-ink hover:bg-nook-paper-warm"
-                  title="Amână cu o zi"
-                >
-                  +1z
-                </button>
-              </form>
-              <form action={completeTask}>
-                <input type="hidden" name="taskId" value={task.id} />
-                <button
-                  type="submit"
-                  className="rounded-full bg-nook-forest px-3 py-1 text-xs font-medium text-nook-paper hover:bg-nook-ink"
-                >
-                  ✓ Făcut
-                </button>
-              </form>
-            </>
-          )}
-        </div>
+      {manage && (
+        <TaskControls
+          taskId={task.id}
+          status={task.status}
+          dueDateISO={task.dueDate ? task.dueDate.toISOString().slice(0, 10) : ""}
+        />
       )}
     </li>
   );

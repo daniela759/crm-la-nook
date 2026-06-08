@@ -156,8 +156,9 @@ model Transaction {
 /// `type`: LEAD_FOLLOWUP | CALL_CONTACT | CONFIRM_RESERVATION | OFFER_SUBSCRIPTION | EVENT_PREP | RENEW_SUBSCRIPTION | RECOVER_NO_SHOW | OTHER
 /// `category` (tipologie): ADMINISTRATIVE | OPERATIONAL | SALES | MARKETING
 /// `priority`: HIGH | MEDIUM | LOW
-/// `status`: TODO | IN_PROGRESS | DONE
+/// `status`: NEW | IN_PROGRESS | POSTPONED | DONE  (Nou / În progres / Amânat / Finalizat)
 /// `origin`: MANUAL | AUTO
+/// `dueDate`: opțional — deadline-ul îl setează adminii / agenția de marketing.
 model Task {
   id          String   @id @default(cuid())
   title       String
@@ -168,9 +169,9 @@ model Task {
   contact   Contact? @relation(fields: [contactId], references: [id])
   leadId    String?
   lead      Lead?    @relation(fields: [leadId], references: [id])
-  dueDate   DateTime
+  dueDate   DateTime?
   priority  String   @default("MEDIUM")
-  status    String   @default("TODO")
+  status    String   @default("NEW")
   origin    String   @default("MANUAL")
   createdAt DateTime @default(now())
 

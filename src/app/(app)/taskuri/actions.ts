@@ -3,45 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { PRIORITIES, TASK_CATEGORIES, TASK_TYPES } from "@/lib/domain";
-import { requireEditor, requireSuperAdmin } from "@/lib/permissions";
+import { PRIORITIES, TASK_CATEGORIES, TASK_STATUSES, TASK_TYPES } from "@/lib/domain";
+import { requireSuperAdmin, requireTaskManager } from "@/lib/permissions";
 import { runAutomations } from "@/lib/automation";
 
-const idSchema = z.object({ taskId: z.string().min(1) });
-
-export async function completeTask(formData: FormData) {
-  await requireEditor();
-  const { taskId } = idSchema.parse({ taskId: formData.get("taskId") });
-  await db.task.update({
-    where: { id: taskId },
-    data: { status: "DONE" },
-  });
+/** Schimbă statusul unui task (Nou / În progres / Amânat / Finalizat). */
+export async function setTaskStatus(formData: FormData) {
+  await requireTaskManager();
+  const taskId = String(formData.get("taskId") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!taskId || !(TASK_STATUSES as readonly string[]).includes(status)) return;
+  await db.task.update({ where: { id: taskId }, data: { status } });
   revalidatePath("/taskuri");
   revalidatePath("/dashboard");
 }
 
-export async function reopenTask(formData: FormData) {
-  await requireEditor();
-  const { taskId } = idSchema.parse({ taskId: formData.get("taskId") });
-  await db.task.update({
-    where: { id: taskId },
-    data: { status: "TODO" },
-  });
+/** Setează (sau șterge) deadline-ul unui task. Gol = fără termen. */
+export async function setTaskDueDate(formData: FormData) {
+  await requireTaskManager();
+  const taskId = String(formData.get("taskId") ?? "");
+  const due = String(formData.get("dueDate") ?? "");
+  if (!taskId) return;
+  const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(due) ? new Date(due) : null;
+  await db.task.update({ where: { id: taskId }, data: { dueDate } });
   revalidatePath("/taskuri");
-}
-
-export async function snoozeTask(formData: FormData) {
-  await requireEditor();
-  const { taskId } = idSchema.parse({ taskId: formData.get("taskId") });
-  const task = await db.task.findUnique({ where: { id: taskId } });
-  if (!task) return;
-  const newDue = new Date(task.dueDate);
-  newDue.setDate(newDue.getDate() + 1);
-  await db.task.update({
-    where: { id: taskId },
-    data: { dueDate: newDue },
-  });
-  revalidatePath("/taskuri");
+  revalidatePath("/dashboard");
 }
 
 const addSchema = z.object({
@@ -49,8 +35,9 @@ const addSchema = z.object({
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   type: z.enum(TASK_TYPES).default("OTHER"),
   category: z.enum(TASK_CATEGORIES).default("OPERATIONAL"),
+  status: z.enum(TASK_STATUSES).default("NEW"),
   priority: z.enum(PRIORITIES).default("MEDIUM"),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă"),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dată invalidă").optional().or(z.literal("")),
   contactId: z.string().optional(),
 });
 
@@ -63,12 +50,13 @@ export async function addManualTask(
   _prev: AddTaskState,
   formData: FormData,
 ): Promise<AddTaskState> {
-  const editor = await requireEditor();
+  const mgr = await requireTaskManager();
   const raw = {
     title: String(formData.get("title") ?? ""),
     description: String(formData.get("description") ?? ""),
     type: String(formData.get("type") ?? "OTHER"),
     category: String(formData.get("category") ?? "OPERATIONAL"),
+    status: String(formData.get("status") ?? "NEW"),
     priority: String(formData.get("priority") ?? "MEDIUM"),
     dueDate: String(formData.get("dueDate") ?? ""),
     contactId: (formData.get("contactId") as string) || undefined,
@@ -86,7 +74,7 @@ export async function addManualTask(
   const data = parsed.data;
 
   // Personalul operațional creează doar taskuri operaționale (altfel nu le-ar vedea).
-  const category = editor.role === "OPERATIONAL" ? "OPERATIONAL" : data.category;
+  const category = mgr.role === "OPERATIONAL" ? "OPERATIONAL" : data.category;
 
   await db.task.create({
     data: {
@@ -94,10 +82,10 @@ export async function addManualTask(
       description: data.description || null,
       type: data.type,
       category,
+      status: data.status,
       priority: data.priority,
-      dueDate: new Date(data.dueDate),
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
       contactId: data.contactId || null,
-      status: "TODO",
       origin: "MANUAL",
     },
   });

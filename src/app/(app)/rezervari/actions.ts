@@ -155,7 +155,7 @@ export async function markAbsent(formData: FormData) {
         leadId: lead.id,
         dueDate,
         priority: "MEDIUM",
-        status: "TODO",
+        status: "NEW",
         origin: "AUTO",
       },
     }),

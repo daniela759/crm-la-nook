@@ -5,8 +5,8 @@ import {
   PRIORITIES,
   PRIORITY_LABEL,
   TASK_CATEGORY_LABEL,
-  TASK_TYPES,
-  TASK_TYPE_LABEL,
+  TASK_STATUS_LABEL,
+  TASK_STATUSES,
   type TaskCategory,
 } from "@/lib/domain";
 import { addManualTask, type AddTaskState } from "./actions";
@@ -41,7 +41,6 @@ export function AddTaskForm({
   }
 
   const err = state.errors ?? {};
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <form
@@ -98,10 +97,10 @@ export function AddTaskForm({
           />
         )}
         <SelectField
-          label="Tip"
-          name="type"
-          defaultValue="OTHER"
-          options={TASK_TYPES.map((t) => ({ value: t, label: TASK_TYPE_LABEL[t] }))}
+          label="Status"
+          name="status"
+          defaultValue="NEW"
+          options={TASK_STATUSES.map((s) => ({ value: s, label: TASK_STATUS_LABEL[s] }))}
         />
         <SelectField
           label="Prioritate"
@@ -110,13 +109,12 @@ export function AddTaskForm({
           options={PRIORITIES.map((p) => ({ value: p, label: PRIORITY_LABEL[p] }))}
         />
         <Field
-          label="Scadență"
+          label="Deadline (opțional)"
           name="dueDate"
           type="date"
-          required
-          defaultValue={today}
           error={err.dueDate}
         />
+        <input type="hidden" name="type" value="OTHER" />
       </div>
 
       <SelectField

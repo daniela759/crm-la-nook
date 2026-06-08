@@ -62,6 +62,15 @@ export function isSuperAdmin(role: string | null | undefined): boolean {
   return asRole(role) === "SUPER_ADMIN";
 }
 
+/**
+ * Poate gestiona taskuri (adăugare manuală + schimbare status/deadline).
+ * TOATE rolurile pot — marketing și super-admin pe orice categorie, operational
+ * doar pe categoria operațională (restricția se aplică în addManualTask).
+ */
+export function canManageTasks(role: string | null | undefined): boolean {
+  return asRole(role) !== null;
+}
+
 /** Categoriile de taskuri vizibile pentru un rol. */
 export function visibleTaskCategories(role: string | null | undefined): TaskCategory[] {
   const r = asRole(role);
@@ -108,6 +117,16 @@ export async function requireEditor() {
   if (!user) redirect("/login");
   if (!canEdit(user.role)) {
     throw new Error("Cont doar-citire: nu ai permisiunea să modifici date.");
+  }
+  return user;
+}
+
+/** Cere drept de gestionare taskuri (orice rol logat); aruncă altfel. Pentru Server Actions. */
+export async function requireTaskManager() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!canManageTasks(user.role)) {
+    throw new Error("Nu ai permisiunea să gestionezi taskuri.");
   }
   return user;
 }

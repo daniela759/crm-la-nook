@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       },
     }),
     db.task.findMany({
-      where: { status: { in: ["TODO", "IN_PROGRESS"] } },
+      where: { status: { in: ["NEW", "IN_PROGRESS"] } },
       orderBy: [{ priority: "asc" }, { dueDate: "asc" }],
       take: 5,
       include: { contact: { select: { firstName: true, lastName: true } } },
@@ -307,7 +307,7 @@ export default async function DashboardPage() {
                 >
                   <span className="text-nook-ink">{t.title}</span>
                   <span className="text-[11px] text-nook-ink-soft">
-                    {formatDate(t.dueDate)}
+                    {t.dueDate ? formatDate(t.dueDate) : "fără termen"}
                   </span>
                 </li>
               ))}
@@ -329,7 +329,7 @@ async function OperationalDashboard() {
   const now = new Date();
   const [opTasks, toConfirm, upcomingConfirmed] = await Promise.all([
     db.task.findMany({
-      where: { status: { in: ["TODO", "IN_PROGRESS"] }, category: "OPERATIONAL" },
+      where: { status: { in: ["NEW", "IN_PROGRESS"] }, category: "OPERATIONAL" },
       orderBy: [{ priority: "asc" }, { dueDate: "asc" }],
       take: 12,
       include: { contact: { select: { firstName: true, lastName: true } } },
@@ -348,7 +348,7 @@ async function OperationalDashboard() {
     }),
   ]);
 
-  const overdueCount = opTasks.filter((t) => t.dueDate < now).length;
+  const overdueCount = opTasks.filter((t) => t.dueDate && t.dueDate < now).length;
 
   return (
     <PageContainer>
@@ -401,9 +401,9 @@ async function OperationalDashboard() {
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 text-[11px] ${t.dueDate < now ? "font-semibold text-state-red" : "text-nook-ink-soft"}`}
+                    className={`shrink-0 text-[11px] ${t.dueDate && t.dueDate < now ? "font-semibold text-state-red" : "text-nook-ink-soft"}`}
                   >
-                    {formatDate(t.dueDate)}
+                    {t.dueDate ? formatDate(t.dueDate) : "fără termen"}
                   </span>
                 </li>
               ))}

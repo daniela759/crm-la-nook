@@ -136,13 +136,17 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 };
 
 // ─── Task status ────────────────────────────────────────────────────────────
-export const TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE"] as const;
+// Ordine = ordinea de afișare/flux: Nou → În progres → Amânat → Finalizat.
+export const TASK_STATUSES = ["NEW", "IN_PROGRESS", "POSTPONED", "DONE"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
-  TODO: "De făcut",
-  IN_PROGRESS: "În lucru",
-  DONE: "Făcut",
+  NEW: "Nou",
+  IN_PROGRESS: "În progres",
+  POSTPONED: "Amânat",
+  DONE: "Finalizat",
 };
+/** Statusuri „deschise" (de făcut) — excludem Finalizat. */
+export const OPEN_TASK_STATUSES = ["NEW", "IN_PROGRESS", "POSTPONED"] as const;
 
 // ─── Task origin ────────────────────────────────────────────────────────────
 export const TASK_ORIGINS = ["MANUAL", "AUTO"] as const;
