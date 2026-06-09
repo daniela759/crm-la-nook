@@ -281,9 +281,12 @@ function TaskRow({
               {TASK_CATEGORY_LABEL[category] ?? task.category}
             </span>
           )}
-          <div className={`font-semibold text-nook-ink ${done ? "line-through" : ""}`}>
+          <Link
+            href={`/taskuri/${task.id}`}
+            className={`font-semibold text-nook-ink hover:text-nook-forest ${done ? "line-through" : ""}`}
+          >
             {task.title}
-          </div>
+          </Link>
         </div>
         {task.description && (
           <p className="mt-1 whitespace-pre-wrap text-xs text-nook-ink-soft">

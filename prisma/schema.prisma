@@ -175,8 +175,40 @@ model Task {
   origin    String   @default("MANUAL")
   createdAt DateTime @default(now())
 
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+
   @@index([status, dueDate])
   @@index([category])
+}
+
+/// Comentariu pe un task (colaborare super-admin / agenție marketing).
+model TaskComment {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId   String?
+  authorName String?
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([taskId])
+}
+
+/// Atașament pe un task: fișier încărcat (stocat ca bytes în DB) SAU link extern.
+model TaskAttachment {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String?
+  size       Int?
+  url        String?
+  data       Bytes?
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([taskId])
 }
 
 /// Eveniment organizat la Nook (atelier, întâlnire tematică).

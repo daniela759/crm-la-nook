@@ -71,6 +71,16 @@ export function canManageTasks(role: string | null | undefined): boolean {
   return asRole(role) !== null;
 }
 
+/**
+ * Poate EDITA taskuri complet (titlu/descriere/categorie/prioritate), poate adăuga
+ * comentarii și fișiere, și poate șterge taskuri/atașamente.
+ * Doar super-admin și agenția de marketing.
+ */
+export function canEditTasks(role: string | null | undefined): boolean {
+  const r = asRole(role);
+  return r === "SUPER_ADMIN" || r === "MARKETING";
+}
+
 /** Categoriile de taskuri vizibile pentru un rol. */
 export function visibleTaskCategories(role: string | null | undefined): TaskCategory[] {
   const r = asRole(role);
@@ -127,6 +137,16 @@ export async function requireTaskManager() {
   if (!user) redirect("/login");
   if (!canManageTasks(user.role)) {
     throw new Error("Nu ai permisiunea să gestionezi taskuri.");
+  }
+  return user;
+}
+
+/** Cere drept de editare taskuri (super-admin / marketing); aruncă altfel. */
+export async function requireTaskEditor() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!canEditTasks(user.role)) {
+    throw new Error("Doar super-adminii și agenția de marketing pot edita taskuri, adăuga fișiere sau comentarii.");
   }
   return user;
 }
